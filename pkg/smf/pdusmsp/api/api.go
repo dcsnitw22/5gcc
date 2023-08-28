@@ -186,7 +186,6 @@ func (a *ApiServerInfo) PostSmContexts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	klog.Infof("Binary Data file: %v", binaryDataN1SmMessageParam)
-        klog.Infof("Data Checks passed")
 	a.apiChannel <- &SessionMessage{MsgType: sm.NSMF_CREATE_SM_CONTEXT_REQUEST, SessionMsg: smContextCreateDataParam, SmContextRefID: "", BinaryDataN2SmInformation: nil, BinaryDataN1SmMessage: binaryDataN1SmMessageParam, BinaryDataN2SmInformationExt1: nil}
 
 }

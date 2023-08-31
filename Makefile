@@ -96,6 +96,13 @@ install: ## Install commands
 #        go install -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/upfgw-init
 #       go install -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/oamctl
 
+ginkgo-test:
+	@ginkgo -r
+
+code-check:
+	@go fmt ./...
+	@go vet ./...
+
 cmd: ## Build commands
 	@echo "# building ${VERSION}"
 	cd cmd/smf/pdusmsp && go build -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}

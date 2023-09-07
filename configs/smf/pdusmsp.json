@@ -1,0 +1,13 @@
+{
+    "Version": "1.0",
+    "NodeInfo": {
+        "NodeId": "127.0.0.1",
+        "ApiPort": ":8080"
+    },
+    "N11AmfNodes": [
+        {
+            "NodeId": "127.0.0.1",
+            "Port": "8080"
+        }
+    ]
+}

@@ -36,6 +36,7 @@ type SmfNodeInfo struct {
 
 type N11AmfNodeInfo struct {
 	NodeId string
+	Port   string
 }
 
 type Update struct {
@@ -50,7 +51,8 @@ var defaultPdusmspConfig = []byte(`
                 },
         "N11AmfNodes":[
                 {
-                        "NodeId": "127.0.0.1"
+                        "NodeId": "127.0.0.1",
+						"Port": "8080"
                 }
         ]
 }`)

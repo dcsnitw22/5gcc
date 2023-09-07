@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"os"
 	"strings"
@@ -162,6 +163,31 @@ func (a *ApiServerInfo) Routes() Routes {
 // PostSmContexts - Create SM Context
 func (a *ApiServerInfo) PostSmContexts(w http.ResponseWriter, r *http.Request) {
 	klog.Info("Inside PostSmContexts function")
+
+	//validate whether amf node ip is present or not
+	AmfNodeIPAddress := r.Header.Get("X-Real-Ip")
+	if AmfNodeIPAddress == "" {
+		AmfNodeIPAddress = r.Header.Get("X-Forwarded-For")
+	}
+	if AmfNodeIPAddress == "" {
+		AmfNodeIPAddress = r.RemoteAddr
+	}
+	AmfNodeIPAddress = strings.Split(AmfNodeIPAddress, ":")[0]
+	N11AmfNodes := (<-config.ConfigChannel).N11AmfNodes
+	found := false
+	for i := 0; i < len(N11AmfNodes); i++ {
+		if AmfNodeIPAddress == N11AmfNodes[i].NodeId {
+			found = true
+			break
+		}
+	}
+	if !found {
+		klog.Info("Request has not been sent from a peer AMF node")
+		err := errors.New("request has not been sent from a peer amf node")
+		openapiserver.DefaultErrorHandler(w, r, err, nil)
+		return
+	}
+
 	klog.Info("Creating SMContext")
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		//a.individualController.errorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
@@ -178,6 +204,19 @@ func (a *ApiServerInfo) PostSmContexts(w http.ResponseWriter, r *http.Request) {
 
 	klog.Infof("Json data is:%v", jsonDataParam)
 	klog.Infof("Input data is : %+v", smContextCreateDataParam)
+
+	if err := openapiserver.AssertSmContextCreateDataRequired(smContextCreateDataParam); err != nil {
+		//a.individualController.errorHandler(w, r, err, nil)
+		openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+		return
+	}
+	if err := openapiserver.AssertSmContextCreateDataConstraints(smContextCreateDataParam); err != nil {
+		//a.individualController.errorHandler(w, r, err, nil)
+		openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+		return
+	}
+
+	klog.Infof("Data Checks passed")
 
 	binaryDataN1SmMessageParam, err := ReadFormFileToTempFile(r, "binaryDataN1SmMessage")
 	if err != nil {

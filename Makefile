@@ -16,6 +16,12 @@ PDUSMSP_DEV_DOCKERFILE_DIR := docker/dev/smf/pdusmsp
 PDUSMSP_PROD_DOCKERFILE_DIR := docker/prod/smf/pdusmsp
 PDUSMSP_DEV_IMAGE_TAG := pdusmsp_dev
 PDUSMSP_PROD_IMAGE_TAG := pdusmsp_prod
+CSP_DEV_DOCKERFILE_DIR := docker/dev/amf/csp
+CSP_PROD_DOCKERFILE_DIR := docker/prod/amf/csp
+CSP_DEV_IMAGE_TAG := csp_dev
+CSP_PROD_IMAGE_TAG := csp_prod
+PDUSMSP_BIN_NAME := pdusmsp
+CSP_BIN_NAME := csp
 GOPKG := w5gc.io/wipro5gcore/v1
 LDFLAGS = -w -s \
         -X $(GOPKG)/pkg/version.app=$(PROJECT) \
@@ -80,6 +86,10 @@ pdusmsp: ## Build pdusmsp
 	@echo "# installing pdusmsp ${VERSION}"
 	@go install -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/pdusmsp
 
+csp: ## Build csp
+	@echo "# installing csp ${VERSION}"
+	@go install -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/amf/csp
+
 upfgw: ## Build upfgw
 	@echo "# installing upfgw ${VERSION}"
 	@go install -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/upfgw
@@ -91,6 +101,7 @@ oamctl: ## Build oamctl
 install: ## Install commands
 	@echo "# installing ${VERSION}"
 	GOBIN=${GOBIN} go install -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/pdusmsp
+	GOBIN=${GOBIN} go install -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/amf/csp
 #	GOBIN=${GOBIN} go install -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/upfgw
 #	go install -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/pdusmsp-init
 #        go install -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/upfgw
@@ -107,6 +118,7 @@ code-check:
 cmd: ## Build commands
 	@echo "# building ${VERSION}"
 	cd cmd/smf/pdusmsp && go build -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}
+	cd cmd/amf/csp && go build -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}
 #	cd cmd/smf/upfgw && go build -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}
 #	cd cmd/smf/pdusmsp-init && go build -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}
 #        cd cmd/smf/upfgw && go build -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}
@@ -117,6 +129,8 @@ clean-cmd: ## Clean commands
 	@echo "# cleaning command binaries"
 	rm -f ./cmd/smf/pdusmsp/pdusmsp
 	rm -f ./cmd/smf/pdusmsp/pdusmsp-init
+	rm -f ./cmd/amf/csp/csp
+	rm -f ./cmd/amf/csp/csp-init
 #        rm -f ./cmd/smf/upfgw/upfgw
 #        rm -f ./cmd/smf/upfgw/upfgw-init
 #       rm -f ./cmd/oamctl/oamctl
@@ -126,6 +140,7 @@ purge: ## Purge cached files
 
 debug-remote: ## Debug remotely
 	cd ./cmd/smf/pdusmsp && dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient
+	cd ./cmd/amf/csp && dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient
 #        cd ./cmd/smf/upfgw && dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient
 
 # -------------------------------
@@ -180,6 +195,8 @@ generate-binapi: get-binapi-generators ## Generate Go code for binary API
 verify-binapi: ## Verify generated binary API
 	@echo "# verifying generated binapi"
 	docker build -f docker/dev/smf/pdusmsp/Dockerfile \
+                --target verify-binapi .
+	docker build -f docker/dev/amf/csp/Dockerfile \
                 --target verify-binapi .
 
 get-desc-adapter-generator:
@@ -286,7 +303,7 @@ check-proto: lint-proto ## Check proto files for breaking changes
 #  Images
 # -------------------------------
 
-images: pdusmsp-dev-image pdusmsp-prod-image ## Build all images
+images: pdusmsp-dev-image pdusmsp-prod-image csp-dev-image csp-prod-image## Build all images
 
 pdusmsp-dev-image: ## Build developer image
 	@echo "# building smf pdusmsp dev image"
@@ -297,9 +314,22 @@ pdusmsp-dev-image: ## Build developer image
           ./build.sh
 #               VERSION=$(VERSION) COMMIT=$(COMMIT) BRANCH=$(BRANCH) \
 
+csp-dev-image: ## Build developer image
+	@echo "# building amf csp dev image"
+	IMAGE_TAG=$(CSP_DEV_IMAGE_TAG) \
+                CSP_IMG=$(CSP_IMG) CSP_VERSION=$(CSP_VERSION)  \
+                BUILD_DATE=$(BUILD_DATE) \
+                DOCKERFILE_DIR=$(CSP_DEV_DOCKERFILE_DIR) \
+          ./build.sh
+
 pdusmsp-prod-image: ## Build production image
 	@echo "# building smf pdusmsp prod image"
-	IMAGE_TAG=$(PDUSMSP_PROD_IMAGE_TAG) DOCKERFILE_DIR=$(PDUSMSP_PROD_DOCKERFILE_DIR) ./build.sh
+	IMAGE_TAG=$(PDUSMSP_PROD_IMAGE_TAG) DOCKERFILE_DIR=$(PDUSMSP_PROD_DOCKERFILE_DIR) BINARY_NAME=$(PDUSMSP_BIN_NAME) ./build.sh
+
+csp-prod-image: ## Build production image
+	@echo "# building amf csp prod image"
+	IMAGE_TAG=$(CSP_PROD_IMAGE_TAG) DOCKERFILE_DIR=$(CSP_PROD_DOCKERFILE_DIR) BINARY_NAME=$(CSP_BIN_NAME) ./build.sh 
+
 
 .PHONY: help \
         pdusmsp upfgw oamtctl build clean install purge \

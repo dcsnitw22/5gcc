@@ -12,6 +12,7 @@ import (
 	"github.com/benbjohnson/clock"
 
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/api"
+	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/apiclient"
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc"
 
 	//"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm/nodes"
@@ -51,6 +52,7 @@ type Pdusmsp struct {
 	sessionCache   cache.WorkCache
 	//sessionDB                     db.SessionDB
 	grpc            grpc.Grpc
+	apiClient       apiclient.ApiClient
 	apiServer       api.ApiServer
 	sessionWorkers  SessionWorkers
 	clock           clock.Clock
@@ -83,6 +85,8 @@ func NewPdusmsp(cfg *config.PdusmspConfig, time time.Time) (PdusmspBootstrap, bo
 	}
 
 	// Intialize the api handler
+	//should both apiClient and apiServer be created in newcsc?
+	pdusmsp.apiClient = apiclient.NewApiClient(cfg)
 	pdusmsp.apiServer = api.NewApiServer(cfg.NodeInfo)
 
 	// Initialize session manager
@@ -111,6 +115,10 @@ func (p *Pdusmsp) Run(configChannel <-chan config.PdusmspConfig) {
 	// p.sessionManager.Start()
 
 	// Start the api handler
+	// to do : message type sent to Start function
+	//remove the parameter from apiclient start
+	//remove package cs also
+	p.apiClient.Start()
 	p.apiServer.Start()
 
 	// Start the grpc

@@ -68,10 +68,20 @@ pipeline {
                 sh 'docker tag pdusmsp_prod:latest 10.250.108.118:8083/pdusmsp_prod:${BUILD_NUMBER}'
                 sh 'docker push 10.250.108.118:8083/pdusmsp_prod:${BUILD_NUMBER}'
                 
-                script {
-                    writeFile file: 'build.properties', text: "BUILD_NUMBER=${BUILD_NUMBER}"
-                    archiveArtifacts 'build.properties'
-                }
+                //script {
+                //    writeFile file: 'build.properties', text: "BUILD_NUMBER=${BUILD_NUMBER}"
+                //    archiveArtifacts 'build.properties'
+                //}
+                sh '''
+                    curl --location 'http://10.250.108.120:8084/webhooks/webhook/jenkinsPdu' \
+                    --header 'Content-Type: application/json' \
+                    --data '{
+                        "parameters": {
+                            "tag": ${BUILD_NUMBER},
+                            "clusterName": "main-cluster"
+                        }
+                    }'
+                '''
             }
         }
     }

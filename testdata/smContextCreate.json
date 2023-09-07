@@ -1,0 +1,18 @@
+{
+    "supi": "1278910263098765",
+    "dnn": "airtelgprs.com",
+    "servingNfId": "3fa85f64-5717-4562-nwi3-2c963f66afa6",
+    "smContextStatusUri": "https://example.com/notify/smcontextstatus",
+    "servingNetwork": {
+        "mcc": "404",
+        "mnc": "10"
+    },
+    "anType": "3GPP_ACCESS",
+    "guami": {
+        "plmnId": {
+            "mcc": "404",
+            "mnc": "10"
+        },
+        "amfId": "218A9E"
+    }
+}

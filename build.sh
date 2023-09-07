@@ -21,4 +21,4 @@ docker build -f ${DOCKERFILE_DIR}/Dockerfile \
           --tag ${IMAGE_TAG} \
  ${DOCKER_BUILD_ARGS-} .
 
-docker run --rm "${IMAGE_TAG}" pdusmsp -h || true
+docker run --rm "${IMAGE_TAG}" ${BINARY_NAME} -h || true

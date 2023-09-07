@@ -72,16 +72,17 @@ pipeline {
                 //    writeFile file: 'build.properties', text: "BUILD_NUMBER=${BUILD_NUMBER}"
                 //    archiveArtifacts 'build.properties'
                 //}
-                sh '''
+
+                sh """
                     curl --location 'http://10.250.108.120:8084/webhooks/webhook/jenkinsPdu' \
                     --header 'Content-Type: application/json' \
                     --data '{
-                        "parameters": {
-                            "tag": ${BUILD_NUMBER},
-                            "clusterName": "main-cluster"
-                        }
+                      "parameters": {
+                        "tag": ${BUILD_NUMBER},
+                        "clusterName": "main-cluster"
+                      }
                     }'
-                '''
+                """
             }
         }
     }

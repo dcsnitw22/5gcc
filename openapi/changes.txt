@@ -1,0 +1,8 @@
+changed model_up_cnx_state.go in openapiserver
+changed model_request_type.go in openapiserver
+changed model_ipv6_addr.go in openapiserver  //
+changed model_rat_type.go in openapiserver
+changed model_access_type.go in openapiserver
+changed model_dnn_selection_mode.go in openapiserver
+changed model_eps_interworking_indication.go in openapiserver
+changed model_max_integrity_protected_data_rate.go in openapiserver

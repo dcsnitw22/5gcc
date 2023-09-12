@@ -3,26 +3,30 @@ package pdusmsp
 import (
 	//"encoding/binary"
 	//"net"
-	//"reflect"
+
 	//"sync"
+	"strconv"
 	"time"
 
+	//	"fmt"
 	"k8s.io/klog"
 	//"github.com/gin-gonic/gin"
 	"github.com/benbjohnson/clock"
 
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/api"
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/apiclient"
+	db "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/database"
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc"
 
 	//"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm/nodes"
+
+	openapiserver "w5gc.io/wipro5gcore/openapi/openapiserver"
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/config"
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm/sessions"
 	"w5gc.io/wipro5gcore/utils/cache"
 
-	//"w5gc.io/wipro5gcore/pkg/util/db"
+	// "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc"
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm"
-	//"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc"
 )
 
 const (
@@ -47,10 +51,10 @@ type PdusmspBootstrap interface {
 }
 
 type Pdusmsp struct {
-	config         *config.PdusmspConfig
-	sessionManager sm.SessionManager
-	sessionCache   cache.WorkCache
-	//sessionDB                     db.SessionDB
+	config          *config.PdusmspConfig
+	sessionManager  sm.SessionManager
+	sessionCache    cache.WorkCache
+	dbManager       db.DBManager
 	grpc            grpc.Grpc
 	apiClient       apiclient.ApiClient
 	apiServer       api.ApiServer
@@ -89,14 +93,19 @@ func NewPdusmsp(cfg *config.PdusmspConfig, time time.Time) (PdusmspBootstrap, bo
 	pdusmsp.apiClient = apiclient.NewApiClient(cfg)
 	pdusmsp.apiServer = api.NewApiServer(cfg.NodeInfo)
 
+	// Intialize session db
+	pdusmsp.dbManager = db.NewDBManager()
+	//temperory to be romoved
+	dbInfo := pdusmsp.dbManager.(*db.DBInfo)
+
 	// Initialize session manager
 	//pdusmsp.sessionManager = sm.NewSessionManager(pdusmsp.config.NodeInfo, pdusmsp.config.n11Nodes, time, pdusmsp.backoffInterval, pdusmsp.timerT1, pdusmsp.retriesN1)
-
+	// var s sm.SessionManager
+	pdusmsp.sessionManager = sm.NewSessionManager(dbInfo)
+	//	s:= pdusmsp.sessionManager.NewSMContextAPIService()
+	//	fmt.Println(s)
 	// Intialize session cache
 	pdusmsp.sessionCache = cache.NewCache(pdusmsp.clock)
-
-	// Intialize session db
-	// pdusmsp.sessionDb = db.NewDB()
 
 	// Intialize session workers
 	pdusmsp.sessionWorkers = NewSessionWorkers(pdusmsp.handleSession, pdusmsp.sessionCache, pdusmsp.backoffInterval)
@@ -112,27 +121,26 @@ func NewPdusmsp(cfg *config.PdusmspConfig, time time.Time) (PdusmspBootstrap, bo
 // Run starts the Pdusmsp
 func (p *Pdusmsp) Run(configChannel <-chan config.PdusmspConfig) {
 	// start the session manager
-	// p.sessionManager.Start()
+	go p.sessionManager.Start()
 
 	// Start the api handler
-	// to do : message type sent to Start function
-	//remove the parameter from apiclient start
-	//remove package cs also
 	p.apiClient.Start()
-	p.apiServer.Start()
+	go p.apiServer.Start()
 
 	// Start the grpc
-	p.grpc.Start()
+	go p.grpc.Start()
 
 	// Start the db Hanlder
+	p.dbManager.Start()
 
 	// Start the pdusmsp event handler
 	p.pdusmspEvents(configChannel, p)
 
-	return
+	// return
 }
 
 func (p *Pdusmsp) pdusmspEvents(configChannel <-chan config.PdusmspConfig, handler PdusmspHandler) {
+	klog.Infof("Entered into pdusmspEvents")
 	syncTicker := time.NewTicker(time.Second)
 	defer syncTicker.Stop()
 	housekeepingTicker := time.NewTicker(housekeepingPeriod)
@@ -146,6 +154,7 @@ func (p *Pdusmsp) pdusmspEvents(configChannel <-chan config.PdusmspConfig, handl
 func (p *Pdusmsp) handlePdusmspEvents(configChannel <-chan config.PdusmspConfig, sessionChannel <-chan *api.SessionMessage,
 	grpcChannel <-chan *grpc.GrpcMessage, syncCh <-chan time.Time, housekeepingCh <-chan time.Time,
 	handler PdusmspHandler) bool {
+	klog.Info("Entered into handlePdusmspEvents")
 	for {
 		select {
 		// Handle config updates of nodes - TODO GURU
@@ -158,31 +167,92 @@ func (p *Pdusmsp) handlePdusmspEvents(configChannel <-chan config.PdusmspConfig,
 		//case UPNODES:
 		// Handle config updates for UP Nodes i.e. UPFU nodes
 		//}
+		case grpcMsg := <-grpcChannel:
+			switch grpcMsg.MsgType {
+			case sm.NSMF_N1_N2_TRANSFER:
+				klog.Info("handlePdusmspEvents (N1N2Message Transfer)")
+
+				// //TODO ask raghu and verify data we are getting
+				// data := *grpcMsg.GrpcMsg
+				// //TODO raghu's datatype to be used here
+				// trData := data.(openapi_commn_client.N1N2MessageTransferReqData)
+				// refId := strconv.Itoa(int(*trData.PduSessionId)) + trData.OldGuami.AmfId
+				// sessionId := sessions.SessionId(refId)
+				p.dispatchWork(sessions.SessionId("1"),
+					nil,
+					grpcMsg,
+					grpcMsg.MsgType,
+					time.Now())
+
+			}
 		case pdusmsMsg := <-sessionChannel:
 			switch pdusmsMsg.MsgType {
 			case sm.NSMF_CREATE_SM_CONTEXT_REQUEST:
 				// PDU Session management service - Create SM Context Request
 				klog.Infof("handlePdusmspEvents (CREATE SM CONTEXT REQUEST)")
-				sessionId := sessions.SessionId(1)
-				p.dispatchWork(sessionId, pdusmsMsg.SessionMsg, time.Now())
+				//put proper session
+				jsonData := pdusmsMsg.SessionMsg
+				smData := jsonData.(openapiserver.SmContextCreateData)
+				refContext := strconv.Itoa(int(smData.PduSessionId)) + smData.Guami.AmfId
+				sessionId := sessions.SessionId(refContext)
+				// p.dispatchWork(sessionId, pdusmsMsg, grpcMsg, time.Now())
+				p.dispatchWork(
+					sessionId,
+					pdusmsMsg,
+					nil,
+					pdusmsMsg.MsgType,
+					time.Now())
 
 			case sm.NSMF_UPDATE_SM_CONTEXT_REQUEST:
 				// PDU Session management service - Update SM Context Request
 				klog.Infof("handlePdusmspEvents (UPDATE SM CONTEXT  REQUEST)")
-				sessionId := sessions.SessionId(1)
-				p.dispatchWork(sessionId, pdusmsMsg.SessionMsg, time.Now())
+				// fmt.Println(reflect.TypeOf(pdusmsMsg.SessionMsg))
+				//have to change in future
+				// id, err := strconv.Atoi(pdusmsMsg.SmContextRefID)
+				// if err != nil {
+				// 	klog.Error(err.Error())
+				// }
+				// klog.Info(id)
+				sessionId := sessions.SessionId(pdusmsMsg.SmContextRefID)
+				// p.dispatchWork(sessionId, pdusmsMsg, grpcMsg, time.Now())
+				p.dispatchWork(
+					sessionId,
+					pdusmsMsg,
+					nil,
+					pdusmsMsg.MsgType,
+					time.Now())
 
 			case sm.NSMF_RELEASE_SM_CONTEXT_REQUEST:
 				// PDU Session management service - Release SM Context Request
 				klog.Infof("handlePdusmspEvents (RELEASE SM CONTEXT REQUEST)")
-				sessionId := sessions.SessionId(1)
-				p.dispatchWork(sessionId, pdusmsMsg.SessionMsg, time.Now())
+				// id, err := strconv.Atoi(pdusmsMsg.SmContextRefID)
+				// if err != nil {
+				// 	klog.Error(err.Error())
+				// }
+				sessionId := sessions.SessionId(pdusmsMsg.SmContextRefID)
+				// p.dispatchWork(sessionId, pdusmsMsg, grpcMsg, time.Now())
+				p.dispatchWork(
+					sessionId,
+					pdusmsMsg,
+					nil,
+					pdusmsMsg.MsgType,
+					time.Now())
 
 			case sm.NSMF_RETRIEVE_SM_CONTEXT_REQUEST:
 				// PDU Session management service - Retrieve SM Context Request
 				klog.Infof("handlePdusmspEvents (RETRIEVE SM CONTEXT REQUEST)")
-				sessionId := sessions.SessionId(1)
-				p.dispatchWork(sessionId, pdusmsMsg.SessionMsg, time.Now())
+				// id, err := strconv.Atoi(pdusmsMsg.SmContextRefID)
+				// if err != nil {
+				// 	klog.Error(err.Error())
+				// }
+				sessionId := sessions.SessionId(pdusmsMsg.SmContextRefID)
+				// p.dispatchWork(sessionId, pdusmsMsg, grpcMsg, time.Now())
+				p.dispatchWork(
+					sessionId,
+					pdusmsMsg,
+					nil,
+					pdusmsMsg.MsgType,
+					time.Now())
 
 			}
 
@@ -223,8 +293,6 @@ func (p *Pdusmsp) handlePdusmspEvents(configChannel <-chan config.PdusmspConfig,
 				klog.Errorf("Failed cleaning session: %v", err)
 			}
 
-			// Handle metrics TODO GURU
-
 		}
 	}
 }
@@ -250,20 +318,49 @@ func (p *Pdusmsp) HandleSessionCleanups() error {
 }
 
 // dispatchWork handles the session in a session worker
-func (p *Pdusmsp) dispatchWork(sessionId sessions.SessionId, sessionMsg sm.SMContextMessage, startTime time.Time) {
+func (p *Pdusmsp) dispatchWork(sessionId sessions.SessionId,
+	sessionMsg *api.SessionMessage,
+	grpcMsg *grpc.GrpcMessage,
+	msgType sm.MessageType,
+	startTime time.Time) {
+
+	if msgType == 11 {
+		p.sessionWorkers.HandleSessionMessages(&SessionMessageInfo{
+			SessionId: sessionId,
+			StartTime: startTime,
+			PdusmsMsg: api.SessionMessage{},
+			GrpcMsg:   *grpcMsg,
+			MsgType:   msgType,
+			OnCompleteFunc: func(err error) {
+				// Handle on completion of session update
+				if err == nil {
+					klog.Infof("Successfully handled pdusms  for session %s", sessionId)
+					//metrics.SessionWorkerDuration.WithLabelValues(syncType.String()).Observe(metrics.SinceInSeconds(start))
+				} else {
+					// Log error and update cause with request rejected
+					klog.Info(err)
+					klog.Errorf("Unable to handle pdusms for session %s", sessionId)
+				}
+			},
+		})
+		return
+	}
 	// Run the handle session in an async worker.
 	p.sessionWorkers.HandleSessionMessages(&SessionMessageInfo{
 		SessionId: sessionId,
 		StartTime: startTime,
-		PdusmsMsg: sessionMsg,
+		PdusmsMsg: *sessionMsg,
+		GrpcMsg:   grpc.GrpcMessage{},
+		MsgType:   msgType,
 		OnCompleteFunc: func(err error) {
 			// Handle on completion of session update
 			if err == nil {
-				klog.Infof("Successfully handled pdusms  for session %d", sessionId)
+				klog.Infof("Successfully handled pdusms  for session %s", sessionId)
 				//metrics.SessionWorkerDuration.WithLabelValues(syncType.String()).Observe(metrics.SinceInSeconds(start))
 			} else {
 				// Log error and update cause with request rejected
-				klog.Errorf("Unable to handle pdusms for session %d", sessionId)
+				klog.Info(err)
+				klog.Errorf("Unable to handle pdusms for session %s", sessionId)
 			}
 		},
 	})
@@ -274,23 +371,55 @@ func (p *Pdusmsp) dispatchWork(sessionId sessions.SessionId, sessionMsg sm.SMCon
 // handleSession handles the pdu session message in a session worker
 func (p *Pdusmsp) handleSession(msgInfo SessionMessageInfo) error {
 	// Get the required message info
-	//pdusmsMsg := msgInfo.PdusmsMsg
+	klog.Info("inside")
 	msgType := msgInfo.MsgType
-
+	pdusmsMsg := msgInfo.PdusmsMsg
+	// grpc->myfunction(process/dbupdate)->callruchi'sfunction
 	// Process remote node requests/responses
 	switch msgType {
 	case sm.NSMF_CREATE_SM_CONTEXT_REQUEST:
-		// Process pdusms creaye request
+		// Process pdusms create request
 		//sm.ProcessNsmfCreateSmContextRequest(pdusmsMsg)
+		n1SmMessage := pdusmsMsg.BinaryDataN1SmMessage
+		jsonData := pdusmsMsg.SessionMsg
+		smData := jsonData.(openapiserver.SmContextCreateData)
+		resp, err := p.sessionManager.ProcessNsmfCreateSmContextRequest(smData, n1SmMessage)
+		chanRec := p.apiServer.WatchRecChannel()
+		chanRec <- &api.Receiver{RecievedResponse: resp, RecievedErr: err}
+		return err
 	case sm.NSMF_UPDATE_SM_CONTEXT_REQUEST:
 		// Process pdusms update request
+		smcontextref := pdusmsMsg.SmContextRefID
+		jsonData := pdusmsMsg.SessionMsg
+		smData := jsonData.(openapiserver.SmContextUpdateData)
+		resp, err := p.sessionManager.ProcessNsmfUpdateSmContextRequest(smcontextref, smData)
 		//sm.ProcessNsmfUpdateSmContextRequest(pdusmsMsg)
+		chanRec := p.apiServer.WatchRecChannel()
+		chanRec <- &api.Receiver{RecievedResponse: resp, RecievedErr: err}
+		return err
 	case sm.NSMF_RELEASE_SM_CONTEXT_REQUEST:
 		// Process pdusms release request
+		smcontextref := pdusmsMsg.SmContextRefID
+		jsonData := pdusmsMsg.SessionMsg
+		smData := jsonData.(openapiserver.SmContextReleaseData)
+		resp, err := p.sessionManager.ProcessNsmfReleaseSmContextRequest(smcontextref, smData)
 		//sm.ProcessNsmfReleaseSmContextRequest(pdusmsMsg)
+		chanRec := p.apiServer.WatchRecChannel()
+		chanRec <- &api.Receiver{RecievedResponse: resp, RecievedErr: err}
+		return err
 	case sm.NSMF_RETRIEVE_SM_CONTEXT_REQUEST:
 		// Process pdusms retrieve request
+		smcontextref := pdusmsMsg.SmContextRefID
+		jsonData := pdusmsMsg.SessionMsg
+		smData := jsonData.(openapiserver.SmContextRetrieveData)
+		resp, err := p.sessionManager.ProcessNsmfRetrieveSmContextRequest(smcontextref, smData)
 		//sm.ProcessNsmfRetrieveSmContextRequest(pdusmsMsg)
+		chanRec := p.apiServer.WatchRecChannel()
+		chanRec <- &api.Receiver{RecievedResponse: resp, RecievedErr: err}
+		return err
+	case sm.NSMF_N1_N2_TRANSFER:
+		klog.Info("put function here")
 	}
+
 	return nil
 }

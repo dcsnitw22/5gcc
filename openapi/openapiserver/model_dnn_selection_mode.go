@@ -14,8 +14,13 @@ import (
 )
 
 // DnnSelectionMode - Possible values are - VERIFIED - UE_DNN_NOT_VERIFIED - NW_DNN_NOT_VERIFIED
-type DnnSelectionMode struct {
-}
+type DnnSelectionMode string
+
+const (
+	VERIFIED            DnnSelectionMode = "VERIFIED"
+	UE_DNN_NOT_VERIFIED DnnSelectionMode = "UE_DNN_NOT_VERIFIED"
+	NW_DNN_NOT_VERIFIED DnnSelectionMode = "NW_DNN_NOT_VERIFIED"
+)
 
 // UnmarshalJSON sets *m to a copy of data while respecting defaults if specified.
 func (m *DnnSelectionMode) UnmarshalJSON(data []byte) error {

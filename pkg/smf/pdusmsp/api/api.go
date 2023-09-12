@@ -30,18 +30,29 @@ type SessionMessage struct {
 	BinaryDataN1SmMessage         *os.File
 	BinaryDataN2SmInformation     *os.File
 	BinaryDataN2SmInformationExt1 *os.File
+	Writer                        http.ResponseWriter
+	Request                       *http.Request
+}
+
+type Receiver struct {
+	RecievedResponse openapiserver.ImplResponse
+	RecievedErr      error
 }
 
 type ApiServer interface {
 	Start()
 	WatchApiChannel() chan *SessionMessage
+	WatchRecChannel() chan *Receiver
 }
 
 type ApiServerInfo struct {
 	serverStartTime time.Time
 	apiChannel      chan *SessionMessage
+	apiReceiver     chan *Receiver
 	//	router          http.Handler
-	nodeInfo config.SmfNodeInfo
+	nodeInfo        config.SmfNodeInfo
+	RequestResponse openapiserver.ImplResponse
+	ErrorResponse   error
 
 	// individualController *IndividualSMContextAPIController
 	// collectionController *SMContextsCollectionAPIController
@@ -89,12 +100,15 @@ func NewApiServer(cfg config.SmfNodeInfo) ApiServer {
 
 	return &ApiServerInfo{
 		//	router:     router,
-		nodeInfo:   cfg,
-		apiChannel: make(chan *SessionMessage, ApiChannelCapacity),
+		nodeInfo:    cfg,
+		apiChannel:  make(chan *SessionMessage, ApiChannelCapacity),
+		apiReceiver: make(chan *Receiver),
 		//		individualController: IndividualSMContextAPIController,
 		//		collectionController: SMContextsCollectionAPIController,
 	}
 }
+
+// func GetResponse(resp openapiserver.ImplResponse,err error)
 
 func (a *ApiServerInfo) Start() {
 	klog.Infof("Started SMF pdusmsp API server")
@@ -173,18 +187,25 @@ func (a *ApiServerInfo) PostSmContexts(w http.ResponseWriter, r *http.Request) {
 		AmfNodeIPAddress = r.RemoteAddr
 	}
 	AmfNodeIPAddress = strings.Split(AmfNodeIPAddress, ":")[0]
-	N11AmfNodes := (<-config.ConfigChannel).N11AmfNodes
+	N11AmfNodes := (config.PdusmspCfg).N11AmfNodes
 	found := false
+	klog.Info(N11AmfNodes)
 	for i := 0; i < len(N11AmfNodes); i++ {
+		klog.Info(N11AmfNodes[i].NodeId)
 		if AmfNodeIPAddress == N11AmfNodes[i].NodeId {
 			found = true
 			break
 		}
 	}
+	klog.Info(found)
 	if !found {
 		klog.Info("Request has not been sent from a peer AMF node")
 		err := errors.New("request has not been sent from a peer amf node")
-		openapiserver.DefaultErrorHandler(w, r, err, nil)
+		// klog.Infof("writer: %v,\n request: %v,\n error: %v\n", w, r, err)
+		openapiserver.DefaultErrorHandler(w, r, err, &openapiserver.ImplResponse{
+			Code: http.StatusBadRequest,
+			Body: err.Error(),
+		})
 		return
 	}
 
@@ -200,8 +221,7 @@ func (a *ApiServerInfo) PostSmContexts(w http.ResponseWriter, r *http.Request) {
 	//Next two lines are added by Mounika --> To convert json data into struct
 	smContextCreateDataParam := openapiserver.SmContextCreateData{}
 
-	json.Unmarshal([]byte(jsonDataParam), &smContextCreateDataParam)
-
+	klog.Info(json.Unmarshal([]byte(jsonDataParam), &smContextCreateDataParam))
 	klog.Infof("Json data is:%v", jsonDataParam)
 	klog.Infof("Input data is : %+v", smContextCreateDataParam)
 
@@ -225,9 +245,31 @@ func (a *ApiServerInfo) PostSmContexts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	klog.Infof("Binary Data file: %v", binaryDataN1SmMessageParam)
+	//send writer in channel
+	a.apiChannel <- &SessionMessage{
+		MsgType:                       sm.NSMF_CREATE_SM_CONTEXT_REQUEST,
+		SessionMsg:                    smContextCreateDataParam,
+		SmContextRefID:                "",
+		BinaryDataN2SmInformation:     nil,
+		BinaryDataN1SmMessage:         binaryDataN1SmMessageParam,
+		BinaryDataN2SmInformationExt1: nil,
+		Writer:                        w,
+		Request:                       r,
+	}
 
-	a.apiChannel <- &SessionMessage{MsgType: sm.NSMF_CREATE_SM_CONTEXT_REQUEST, SessionMsg: smContextCreateDataParam, SmContextRefID: "", BinaryDataN2SmInformation: nil, BinaryDataN1SmMessage: binaryDataN1SmMessageParam, BinaryDataN2SmInformationExt1: nil}
+	//TODO make a reciever function using code written below
+	rec := <-a.apiReceiver
+	// klog.Info(rec)
 
+	if rec.RecievedErr != nil {
+		openapiserver.DefaultErrorHandler(
+			w, r, &openapiserver.ParsingError{
+				Err: rec.RecievedErr,
+			}, &rec.RecievedResponse,
+		)
+		return
+	}
+	EncodeJSONResponse(rec.RecievedResponse.Body, &rec.RecievedResponse.Code, w)
 }
 
 // ReleaseSmContext - Release SM Context
@@ -273,9 +315,26 @@ func (a *ApiServerInfo) ReleaseSmContext(w http.ResponseWriter, r *http.Request)
 	}
 	klog.Infof("Binary Data file: %v", binaryDataN2SmInformationParam)
 
-	a.apiChannel <- &SessionMessage{MsgType: sm.NSMF_RELEASE_SM_CONTEXT_REQUEST, SessionMsg: smContextReleaseDataParam, SmContextRefID: smContextRefParam, BinaryDataN2SmInformation: binaryDataN2SmInformationParam, BinaryDataN1SmMessage: nil, BinaryDataN2SmInformationExt1: nil}
+	a.apiChannel <- &SessionMessage{MsgType: sm.NSMF_RELEASE_SM_CONTEXT_REQUEST,
+		SessionMsg:                    smContextReleaseDataParam,
+		SmContextRefID:                smContextRefParam,
+		BinaryDataN2SmInformation:     binaryDataN2SmInformationParam,
+		BinaryDataN1SmMessage:         nil,
+		BinaryDataN2SmInformationExt1: nil}
+	//TODO  create a function to handle situation below
+	rec := <-a.apiReceiver
+	// klog.Info(rec)
 
-	//Channel <- SMCchannel{Mode: "ReleaseSmContext", ChannelData: smContextReleaseDataParam, Input: smContextRefParam, BinaryDataN1SmMessage: nil, BinaryDataN2SmInformation: binaryDataN2SmInformationParam, BinaryDataN2SmInformationExt1: nil}
+	if rec.RecievedErr != nil {
+		openapiserver.DefaultErrorHandler(
+			w, r, &openapiserver.ParsingError{
+				Err: rec.RecievedErr,
+			}, &rec.RecievedResponse,
+		)
+		return
+	}
+	EncodeJSONResponse(rec.RecievedResponse.Body, &rec.RecievedResponse.Code, w)
+
 }
 
 // RetrieveSmContext - Retrieve SM Context
@@ -305,7 +364,23 @@ func (a *ApiServerInfo) RetrieveSmContext(w http.ResponseWriter, r *http.Request
 
 	klog.Infof("Data Checks passed")
 
-	a.apiChannel <- &SessionMessage{MsgType: sm.NSMF_RETRIEVE_SM_CONTEXT_REQUEST, SessionMsg: smContextRetrieveDataParam, SmContextRefID: smContextRefParam, BinaryDataN2SmInformation: nil, BinaryDataN1SmMessage: nil, BinaryDataN2SmInformationExt1: nil}
+	a.apiChannel <- &SessionMessage{MsgType: sm.NSMF_RETRIEVE_SM_CONTEXT_REQUEST,
+		SessionMsg:                smContextRetrieveDataParam,
+		SmContextRefID:            smContextRefParam,
+		BinaryDataN2SmInformation: nil,
+		BinaryDataN1SmMessage:     nil, BinaryDataN2SmInformationExt1: nil}
+	rec := <-a.apiReceiver
+	// klog.Info(rec)
+
+	if rec.RecievedErr != nil {
+		openapiserver.DefaultErrorHandler(
+			w, r, &openapiserver.ParsingError{
+				Err: rec.RecievedErr,
+			}, &rec.RecievedResponse,
+		)
+		return
+	}
+	EncodeJSONResponse(rec.RecievedResponse.Body, &rec.RecievedResponse.Code, w)
 
 }
 
@@ -368,12 +443,32 @@ func (a *ApiServerInfo) UpdateSmContext(w http.ResponseWriter, r *http.Request) 
 	}
 	klog.Infof("Binary Data file: %v", binaryDataN2SmInformationExt1Param)
 
-	a.apiChannel <- &SessionMessage{MsgType: sm.NSMF_UPDATE_SM_CONTEXT_REQUEST, SessionMsg: smContextUpdateDataParam, SmContextRefID: smContextRefParam, BinaryDataN2SmInformation: binaryDataN2SmInformationParam, BinaryDataN1SmMessage: binaryDataN1SmMessageParam, BinaryDataN2SmInformationExt1: binaryDataN2SmInformationExt1Param}
+	a.apiChannel <- &SessionMessage{MsgType: sm.NSMF_UPDATE_SM_CONTEXT_REQUEST,
+		SessionMsg:                    smContextUpdateDataParam,
+		SmContextRefID:                smContextRefParam,
+		BinaryDataN2SmInformation:     binaryDataN2SmInformationParam,
+		BinaryDataN1SmMessage:         binaryDataN1SmMessageParam,
+		BinaryDataN2SmInformationExt1: binaryDataN2SmInformationExt1Param}
 
-	//Channel <- SMCchannel{Mode: "ReleaseSmContext", ChannelData: smContextUpdateDataParam, Input: smContextRefParam, BinaryDataN1SmMessage: binaryDataN1SmMessageParam, BinaryDataN2SmInformation: binaryDataN2SmInformationParam, BinaryDataN2SmInformationExt1: binaryDataN2SmInformationExt1Param}
+	rec := <-a.apiReceiver
+	// klog.Info(rec)
+
+	if rec.RecievedErr != nil {
+		openapiserver.DefaultErrorHandler(
+			w, r, &openapiserver.ParsingError{
+				Err: rec.RecievedErr,
+			}, &rec.RecievedResponse,
+		)
+		return
+	}
+	EncodeJSONResponse(rec.RecievedResponse.Body, &rec.RecievedResponse.Code, w)
 
 }
 
 func (a *ApiServerInfo) WatchApiChannel() chan *SessionMessage {
 	return a.apiChannel
+}
+
+func (a *ApiServerInfo) WatchRecChannel() chan *Receiver {
+	return a.apiReceiver
 }

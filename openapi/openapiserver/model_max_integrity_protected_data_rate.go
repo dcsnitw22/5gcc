@@ -14,8 +14,12 @@ import (
 )
 
 // MaxIntegrityProtectedDataRate - Possible values are   - 64_KBPS   - MAX_UE_RATE
-type MaxIntegrityProtectedDataRate struct {
-}
+type MaxIntegrityProtectedDataRate string
+
+const (
+	DATARATE_64_KBPS     MaxIntegrityProtectedDataRate = "64_KBPS"
+	DATARATE_MAX_UE_RATE MaxIntegrityProtectedDataRate = "MAX_UE_RATE"
+)
 
 // UnmarshalJSON sets *m to a copy of data while respecting defaults if specified.
 func (m *MaxIntegrityProtectedDataRate) UnmarshalJSON(data []byte) error {

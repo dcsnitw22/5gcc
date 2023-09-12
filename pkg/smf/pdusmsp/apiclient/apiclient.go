@@ -24,7 +24,8 @@ type ApiClientInfo struct {
 // changed this paramter to type config.CscConfig instead of config.SmfNodeInfo
 func NewApiClient(cfg *config.PdusmspConfig) ApiClient {
 	c := &ApiClientInfo{
-		nodeInfo: cfg.NodeInfo,
+		nodeInfo:      cfg.NodeInfo,
+		openApiClient: make(map[string]*openapi_commn_client.APIClient),
 	}
 	N11AmfNodes := cfg.N11AmfNodes
 	for i := 0; i < len(N11AmfNodes); i++ {

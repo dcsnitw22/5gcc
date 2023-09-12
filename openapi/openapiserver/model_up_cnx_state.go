@@ -14,8 +14,13 @@ import (
 )
 
 // UpCnxState - Possible values are - ACTIVATED - DEACTIVATED - ACTIVATING
-type UpCnxState struct {
-}
+type UpCnxState int
+
+const (
+	ACTIVATING  UpCnxState = iota + 1 // EnumIndex = 1
+	ACTIVATED                         // EnumIndex = 2
+	DEACTIVATED                       // EnumIndex = 3
+)
 
 // UnmarshalJSON sets *m to a copy of data while respecting defaults if specified.
 func (m *UpCnxState) UnmarshalJSON(data []byte) error {

@@ -1,45 +1,44 @@
 package grpc
 
 import (
-        "time"
-        //"net"
-        "k8s.io/klog"
+	"time"
+	//"net"
+	"k8s.io/klog"
 
-        //"w5gc.io/wipro5gcore/openapi"
-        "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm"
+	//"w5gc.io/wipro5gcore/openapi"
+	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm"
 )
 
 const (
-        GrpcChannelCapacity = 100
+	GrpcChannelCapacity = 100
 )
 
-type GrpcMessageInfo  interface{}
+type GrpcMessageInfo interface{}
 
 type GrpcMessage struct {
-	msgType		sm.MessageType
-	grpcMsg		*GrpcMessageInfo
+	MsgType sm.MessageType
+	GrpcMsg *GrpcMessageInfo
 }
 type Grpc interface {
-        Start()
-	WatchGrpcChannel()(chan *GrpcMessage)
+	Start()
+	WatchGrpcChannel() chan *GrpcMessage
 }
 
 type GrpcInfo struct {
-        grpcStartTime     time.Time
-        grpcChannel       chan *GrpcMessage
+	GrpcStartTime time.Time
+	GrpcChannel   chan *GrpcMessage
 }
 
 func NewGrpc() Grpc {
-                return &GrpcInfo {
-                grpcChannel: make(chan *GrpcMessage, GrpcChannelCapacity),
-        }
+	return &GrpcInfo{
+		GrpcChannel: make(chan *GrpcMessage, GrpcChannelCapacity),
+	}
 }
 
 func (g *GrpcInfo) Start() {
 	klog.Infof("Started pdusmsp grpc server")
 }
 
-
-func (g *GrpcInfo) WatchGrpcChannel() (chan *GrpcMessage) {
-	return g.grpcChannel
+func (g *GrpcInfo) WatchGrpcChannel() chan *GrpcMessage {
+	return g.GrpcChannel
 }

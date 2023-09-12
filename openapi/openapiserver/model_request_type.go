@@ -14,8 +14,14 @@ import (
 )
 
 // RequestType - Possible values are - INITIAL_REQUEST - EXISTING_PDU_SESSION - INITIAL_EMERGENCY_REQUEST - EXISTING_EMERGENCY_PDU_SESSION
-type RequestType struct {
-}
+type RequestType string
+
+const (
+	INITIAL_REQUEST                RequestType = "INITIAL_REQUEST"
+	EXISTING_PDU_SESSION           RequestType = "EXISTING_PDU_SESSION"
+	INITIAL_EMERGENCY_REQUEST      RequestType = "INITIAL_EMERGENCY_REQUEST"
+	EXISTING_EMERGENCY_PDU_SESSION RequestType = "EXISTING_EMERGENCY_PDU_SESSION"
+)
 
 // UnmarshalJSON sets *m to a copy of data while respecting defaults if specified.
 func (m *RequestType) UnmarshalJSON(data []byte) error {

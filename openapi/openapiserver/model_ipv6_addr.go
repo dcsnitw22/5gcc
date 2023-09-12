@@ -9,12 +9,10 @@
 
 package openapiserver
 
-import (
-	"encoding/json"
-)
+import "encoding/json"
 
-type Ipv6Addr struct {
-}
+// ! ipv6 not unmarshaled properly | resolve it
+type Ipv6Addr string //regex ^((([^:]+:){7}([^:]+))|((([^:]+:)*[^:]+)?::(([^:]+:)*[^:]+)?))$
 
 // UnmarshalJSON sets *m to a copy of data while respecting defaults if specified.
 func (m *Ipv6Addr) UnmarshalJSON(data []byte) error {

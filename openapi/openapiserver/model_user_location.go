@@ -9,9 +9,7 @@
 
 package openapiserver
 
-import (
-	"encoding/json"
-)
+import "encoding/json"
 
 type UserLocation struct {
 	EutraLocation EutraLocation `json:"eutraLocation,omitempty"`

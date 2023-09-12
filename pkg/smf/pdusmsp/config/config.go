@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	DefaultConfigFilePath = "/go/src/w5gc.io/wipro5gcore/configs/smf"
-	DefaultConfigFileName = "pdusmsp"
+	// DefaultConfigFilePath = "/go/src/w5gc.io/wipro5gcore/configs/smf"
+	DefaultConfigFilePath = "/wipro5gc/configs/smf"
+	DefaultConfigFileName = "pdusmsp.json"
 	DefaultEtcdConfigKey  = "/w5gc/config/smf/pdusmsp.json"
 	DefaultEtcdServer     = "http://localhost:2379"
 	DefaultEtcdConfigType = "json"
@@ -53,7 +54,15 @@ var defaultPdusmspConfig = []byte(`
                 {
                         "NodeId": "127.0.0.1",
 						"Port": "8080"
-                }
+                },
+				{
+					"NodeId": "10.250.108.35",
+					"Port": "8080"
+				},
+				{
+					"NodeId": "10.250.110.37",
+					"Port": "8080"
+				}	
         ]
 }`)
 
@@ -104,6 +113,7 @@ func InitConfig(cfgFile string, etcdServer string, etcdConfigKey string, resetFl
 			}
 
 			// Search config in home directory with name "go/src/w5gc.io/wipro5gcore/configs/" .
+			klog.Info(home)
 			runtime_viper.AddConfigPath(home + DefaultConfigFilePath)
 			runtime_viper.SetConfigName(DefaultConfigFileName)
 		}
@@ -135,7 +145,8 @@ func InitConfig(cfgFile string, etcdServer string, etcdConfigKey string, resetFl
 	}
 
 	// Write config to remote TODO GURU
-
+	// klog.Info(etcdConfig)
+	// etcdConfig = true
 	if etcdConfig {
 		ConfigChannel = make(chan PdusmspConfig)
 
@@ -161,6 +172,11 @@ func InitConfig(cfgFile string, etcdServer string, etcdConfigKey string, resetFl
 			}
 		}()
 	}
-
+	// temperory| jugad
+	go func() {
+		ConfigChannel = make(chan PdusmspConfig)
+		klog.Info(PdusmspCfg)
+		ConfigChannel <- PdusmspCfg
+	}()
 	return &PdusmspCfg, err
 }

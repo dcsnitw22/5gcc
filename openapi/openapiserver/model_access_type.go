@@ -17,8 +17,8 @@ type AccessType string
 
 // List of AccessType
 const (
-	_3_GPP_ACCESS    AccessType = "3GPP_ACCESS"
-	NON_3_GPP_ACCESS AccessType = "NON_3GPP_ACCESS"
+	AccessType_3GPP_ACCESS     AccessType = "3GPP_ACCESS"
+	AccessType_NON_3GPP_ACCESS AccessType = "NON_3GPP_ACCESS"
 )
 
 // UnmarshalJSON sets *m to a copy of data while respecting defaults if specified.

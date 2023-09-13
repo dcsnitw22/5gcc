@@ -14,8 +14,14 @@ import (
 )
 
 // EpsInterworkingIndication - Possible values are - NONE - WITH_N26 - WITHOUT_N26
-type EpsInterworkingIndication struct {
-}
+type EpsInterworkingIndication string
+
+const (
+	NONE         EpsInterworkingIndication = "NONE"
+	WITH_N26     EpsInterworkingIndication = "WITH_N26"
+	WITHOUT_N26  EpsInterworkingIndication = "WITHOUT_N26"
+	IWK_NON_3GPP EpsInterworkingIndication = "IWK_NON_3GPP"
+)
 
 // UnmarshalJSON sets *m to a copy of data while respecting defaults if specified.
 func (m *EpsInterworkingIndication) UnmarshalJSON(data []byte) error {

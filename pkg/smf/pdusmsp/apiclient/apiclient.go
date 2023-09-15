@@ -13,6 +13,7 @@ import (
 
 type ApiClient interface {
 	Start()
+	N1N2MessageTransfer(sourceIP string, n1N2MessageTransferReqData openapi_commn_client.N1N2MessageTransferReqData, binaryDataN1MessageContentFile *os.File, binaryDataN2InfoContentFile *os.File)
 }
 
 type ApiClientInfo struct {

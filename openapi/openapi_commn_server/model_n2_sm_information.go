@@ -45,9 +45,10 @@ func AssertN2SmInformationRequired(obj N2SmInformation) error {
 	if err := AssertN2InfoContentRequired(obj.N2InfoContent); err != nil {
 		return err
 	}
-	if err := AssertSnssaiRequired(obj.SNssai); err != nil {
-		return err
-	}
+	//TODO add later
+	// if err := AssertSnssaiRequired(obj.SNssai); err != nil {
+	// 	return err
+	// }
 	return nil
 }
 

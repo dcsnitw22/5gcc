@@ -47,15 +47,15 @@ func AssertN2InfoContainerRequired(obj N2InfoContainer) error {
 	if err := AssertN2SmInformationRequired(obj.SmInfo); err != nil {
 		return err
 	}
-	if err := AssertN2RanInformationRequired(obj.RanInfo); err != nil {
-		return err
-	}
-	if err := AssertNrppaInformationRequired(obj.NrppaInfo); err != nil {
-		return err
-	}
-	if err := AssertPwsInformationRequired(obj.PwsInfo); err != nil {
-		return err
-	}
+	// if err := AssertN2RanInformationRequired(obj.RanInfo); err != nil {
+	// 	return err
+	// }
+	// if err := AssertNrppaInformationRequired(obj.NrppaInfo); err != nil {
+	// 	return err
+	// }
+	// if err := AssertPwsInformationRequired(obj.PwsInfo); err != nil {
+	// 	return err
+	// }
 	return nil
 }
 

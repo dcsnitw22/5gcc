@@ -5,6 +5,8 @@ import (
 	//"net"
 
 	//"sync"
+
+	"fmt"
 	"strconv"
 	"time"
 
@@ -17,6 +19,8 @@ import (
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/apiclient"
 	db "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/database"
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc"
+	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc/grpcserver"
+	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc/protos"
 
 	//"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm/nodes"
 
@@ -100,8 +104,12 @@ func NewPdusmsp(cfg *config.PdusmspConfig, time time.Time) (PdusmspBootstrap, bo
 
 	// Initialize session manager
 	//pdusmsp.sessionManager = sm.NewSessionManager(pdusmsp.config.NodeInfo, pdusmsp.config.n11Nodes, time, pdusmsp.backoffInterval, pdusmsp.timerT1, pdusmsp.retriesN1)
+
+	// Intialize grpc
+	pdusmsp.grpc = grpc.NewGrpc(cfg.GrpcServerInfo, cfg.GrpcClientInfo)
+	// s:=(pdusmsp.apiClient).(apiclient.ApiClientInfo)
 	// var s sm.SessionManager
-	pdusmsp.sessionManager = sm.NewSessionManager(dbInfo)
+	pdusmsp.sessionManager = sm.NewSessionManager(dbInfo, &pdusmsp.grpc, pdusmsp.apiClient)
 	//	s:= pdusmsp.sessionManager.NewSMContextAPIService()
 	//	fmt.Println(s)
 	// Intialize session cache
@@ -109,9 +117,6 @@ func NewPdusmsp(cfg *config.PdusmspConfig, time time.Time) (PdusmspBootstrap, bo
 
 	// Intialize session workers
 	pdusmsp.sessionWorkers = NewSessionWorkers(pdusmsp.handleSession, pdusmsp.sessionCache, pdusmsp.backoffInterval)
-
-	// Intialize grpc
-	pdusmsp.grpc = grpc.NewGrpc()
 
 	// resyncInterval, backOffPeriod TODO GURU
 
@@ -152,7 +157,7 @@ func (p *Pdusmsp) pdusmspEvents(configChannel <-chan config.PdusmspConfig, handl
 
 // handlePdusmspEvents is the main loop for processing events in pdusmsp
 func (p *Pdusmsp) handlePdusmspEvents(configChannel <-chan config.PdusmspConfig, sessionChannel <-chan *api.SessionMessage,
-	grpcChannel <-chan *grpc.GrpcMessage, syncCh <-chan time.Time, housekeepingCh <-chan time.Time,
+	grpcChannel <-chan *grpcserver.GrpcMessage, syncCh <-chan time.Time, housekeepingCh <-chan time.Time,
 	handler PdusmspHandler) bool {
 	klog.Info("Entered into handlePdusmspEvents")
 	for {
@@ -168,22 +173,25 @@ func (p *Pdusmsp) handlePdusmspEvents(configChannel <-chan config.PdusmspConfig,
 		// Handle config updates for UP Nodes i.e. UPFU nodes
 		//}
 		case grpcMsg := <-grpcChannel:
-			switch grpcMsg.MsgType {
+			grpcMsgType := sm.MessageType(grpcMsg.MsgType)
+			switch grpcMsgType {
 			case sm.NSMF_N1_N2_TRANSFER:
 				klog.Info("handlePdusmspEvents (N1N2Message Transfer)")
-
+				klog.Infof("%+v", *grpcMsg.GrpcMsg)
 				// //TODO ask raghu and verify data we are getting
-				// data := *grpcMsg.GrpcMsg
+				data := *grpcMsg.GrpcMsg
 				// //TODO raghu's datatype to be used here
-				// trData := data.(openapi_commn_client.N1N2MessageTransferReqData)
-				// refId := strconv.Itoa(int(*trData.PduSessionId)) + trData.OldGuami.AmfId
-				// sessionId := sessions.SessionId(refId)
-				p.dispatchWork(sessions.SessionId("1"),
+				trData := data.(*protos.N1N2MessageTransferDataRequest)
+
+				// refId := strconv.Itoa(int(trData.PduSessionId)) + trData.OldGuami.AmfId
+				refId := fmt.Sprintf("%v", trData.PduSessionId)
+				sessionId := sessions.SessionId(refId)
+				p.dispatchWork(sessions.SessionId(sessionId),
 					nil,
 					grpcMsg,
-					grpcMsg.MsgType,
-					time.Now())
-
+					grpcMsgType,
+					time.Now(),
+				)
 			}
 		case pdusmsMsg := <-sessionChannel:
 			switch pdusmsMsg.MsgType {
@@ -320,11 +328,11 @@ func (p *Pdusmsp) HandleSessionCleanups() error {
 // dispatchWork handles the session in a session worker
 func (p *Pdusmsp) dispatchWork(sessionId sessions.SessionId,
 	sessionMsg *api.SessionMessage,
-	grpcMsg *grpc.GrpcMessage,
+	grpcMsg *grpcserver.GrpcMessage,
 	msgType sm.MessageType,
 	startTime time.Time) {
 
-	if msgType == 11 {
+	if msgType == sm.NSMF_N1_N2_TRANSFER {
 		p.sessionWorkers.HandleSessionMessages(&SessionMessageInfo{
 			SessionId: sessionId,
 			StartTime: startTime,
@@ -350,7 +358,7 @@ func (p *Pdusmsp) dispatchWork(sessionId sessions.SessionId,
 		SessionId: sessionId,
 		StartTime: startTime,
 		PdusmsMsg: *sessionMsg,
-		GrpcMsg:   grpc.GrpcMessage{},
+		GrpcMsg:   grpcserver.GrpcMessage{},
 		MsgType:   msgType,
 		OnCompleteFunc: func(err error) {
 			// Handle on completion of session update
@@ -418,7 +426,8 @@ func (p *Pdusmsp) handleSession(msgInfo SessionMessageInfo) error {
 		chanRec <- &api.Receiver{RecievedResponse: resp, RecievedErr: err}
 		return err
 	case sm.NSMF_N1_N2_TRANSFER:
-		klog.Info("put function here")
+		recGrpcMsg := (*msgInfo.GrpcMsg.GrpcMsg).(*protos.N1N2MessageTransferDataRequest)
+		p.sessionManager.ProcessN1N2Message(recGrpcMsg)
 	}
 
 	return nil

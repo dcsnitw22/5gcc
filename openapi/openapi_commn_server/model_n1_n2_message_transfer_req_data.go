@@ -83,15 +83,17 @@ func AssertN1N2MessageTransferReqDataRequired(obj N1N2MessageTransferReqData) er
 	if err := AssertN1MessageContainerRequired(obj.N1MessageContainer); err != nil {
 		return err
 	}
+	//TODO will get all values
 	if err := AssertN2InfoContainerRequired(obj.N2InfoContainer); err != nil {
 		return err
 	}
 	if err := AssertArpRequired(obj.Arp); err != nil {
 		return err
 	}
-	if err := AssertAreaOfValidityRequired(obj.AreaOfValidity); err != nil {
-		return err
-	}
+	//TODO TBD with guru
+	// if err := AssertAreaOfValidityRequired(obj.AreaOfValidity); err != nil {
+	// 	return err
+	// }
 	if err := AssertGuamiRequired(obj.OldGuami); err != nil {
 		return err
 	}

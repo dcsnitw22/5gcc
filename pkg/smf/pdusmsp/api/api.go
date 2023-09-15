@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"os"
 	"strings"
@@ -179,35 +178,36 @@ func (a *ApiServerInfo) PostSmContexts(w http.ResponseWriter, r *http.Request) {
 	klog.Info("Inside PostSmContexts function")
 
 	//validate whether amf node ip is present or not
-	AmfNodeIPAddress := r.Header.Get("X-Real-Ip")
-	if AmfNodeIPAddress == "" {
-		AmfNodeIPAddress = r.Header.Get("X-Forwarded-For")
-	}
-	if AmfNodeIPAddress == "" {
-		AmfNodeIPAddress = r.RemoteAddr
-	}
-	AmfNodeIPAddress = strings.Split(AmfNodeIPAddress, ":")[0]
-	N11AmfNodes := (config.PdusmspCfg).N11AmfNodes
-	found := false
-	klog.Info(N11AmfNodes)
-	for i := 0; i < len(N11AmfNodes); i++ {
-		klog.Info(N11AmfNodes[i].NodeId)
-		if AmfNodeIPAddress == N11AmfNodes[i].NodeId {
-			found = true
-			break
-		}
-	}
-	klog.Info(found)
-	if !found {
-		klog.Info("Request has not been sent from a peer AMF node")
-		err := errors.New("request has not been sent from a peer amf node")
-		// klog.Infof("writer: %v,\n request: %v,\n error: %v\n", w, r, err)
-		openapiserver.DefaultErrorHandler(w, r, err, &openapiserver.ImplResponse{
-			Code: http.StatusBadRequest,
-			Body: err.Error(),
-		})
-		return
-	}
+	//remove ip check we will di amfi check
+	// AmfNodeIPAddress := r.Header.Get("X-Real-Ip")
+	// if AmfNodeIPAddress == "" {
+	// 	AmfNodeIPAddress = r.Header.Get("X-Forwarded-For")
+	// }
+	// if AmfNodeIPAddress == "" {
+	// 	AmfNodeIPAddress = r.RemoteAddr
+	// }
+	// AmfNodeIPAddress = strings.Split(AmfNodeIPAddress, ":")[0]
+	// N11AmfNodes := (config.PdusmspCfg).N11AmfNodes
+	// found := false
+	// klog.Info(N11AmfNodes)
+	// for i := 0; i < len(N11AmfNodes); i++ {
+	// 	klog.Info(N11AmfNodes[i].NodeId)
+	// 	if AmfNodeIPAddress == N11AmfNodes[i].NodeId {
+	// 		found = true
+	// 		break
+	// 	}
+	// }
+	// klog.Info(found)
+	// if !found {
+	// 	klog.Info("Request has not been sent from a peer AMF node")
+	// 	err := errors.New("request has not been sent from a peer amf node")
+	// 	// klog.Infof("writer: %v,\n request: %v,\n error: %v\n", w, r, err)
+	// 	openapiserver.DefaultErrorHandler(w, r, err, &openapiserver.ImplResponse{
+	// 		Code: http.StatusBadRequest,
+	// 		Body: err.Error(),
+	// 	})
+	// 	return
+	// }
 
 	klog.Info("Creating SMContext")
 	if err := r.ParseMultipartForm(32 << 20); err != nil {

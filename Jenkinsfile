@@ -13,7 +13,6 @@ pipeline {
             }
         }
         stage ('Build') {
-            // agent { node { label 'label1'} }
             steps {
                 // echo "Running ${env.JOB_NAME} on ${env.JENKINS_URL}"    
                 echo 'Building main...'
@@ -85,5 +84,7 @@ pipeline {
                 """
             }
         }
+
+
     }
 }

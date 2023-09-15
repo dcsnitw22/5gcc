@@ -11,11 +11,11 @@ package openapi_commn_server
 
 import "encoding/json"
 
-//	type NgapIeType struct {
-//		//added by Ruchi
-//		//string string
-//		//NgapIeType string `json:"NgapIeType"`
-//	}
+// type NgapIeType struct {
+// 	//string string
+// 	String string `json:"NgapIeType"`
+// }
+
 type NgapIeType string
 
 // UnmarshalJSON sets *m to a copy of data while respecting defaults if specified.

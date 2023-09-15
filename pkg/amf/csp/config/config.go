@@ -49,13 +49,17 @@ var defaultCspConfig = []byte(`
         "Version": "1.0",
         "NodeInfo":     {
                         "NodeId": "127.0.0.1",
-			"ApiPort": ":8080"
+			"ApiPort": ":8083"
                 },
         "N11SmfNodes":[
                 {
                         "NodeId": "10.250.108.35",
 			"Port": "8080"
-                }
+                },
+				{
+					"NodeId": "127.0.0.1",
+					"Port": "8083"
+				}
         ]
 }`)
 

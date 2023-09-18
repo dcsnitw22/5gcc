@@ -102,7 +102,7 @@ install: ## Install commands
 	@echo "# installing ${VERSION}"
 	GOBIN=${GOBIN} go install -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/pdusmsp
 	GOBIN=${GOBIN} go install -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/amf/csp
-#	GOBIN=${GOBIN} go install -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/upfgw
+	GOBIN=${GOBIN} go install -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/upfgw
 #	go install -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/pdusmsp-init
 #        go install -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/upfgw
 #        go install -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS} ./cmd/smf/upfgw-init
@@ -118,8 +118,7 @@ code-check:
 cmd: ## Build commands
 	@echo "# building ${VERSION}"
 	cd cmd/smf/pdusmsp && go build -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}
-	cd cmd/amf/csp && go build -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}
-#	cd cmd/smf/upfgw && go build -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}
+	cd cmd/smf/upfgw && go build -buildvcs=false -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}
 #	cd cmd/smf/pdusmsp-init && go build -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}
 #        cd cmd/smf/upfgw && go build -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}
 #        cd cmd/smf/upfgw-init && go build -ldflags "${LDFLAGS}" -tags="${GO_BUILD_TAGS}" ${GO_BUILD_ARGS}

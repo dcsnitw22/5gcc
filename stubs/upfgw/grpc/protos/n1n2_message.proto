@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package grpc;
+import "sm_context.proto";
+option go_package = "./";
+
+service N1N2Message {
+  rpc SendN1N2MessageTransferData (N1N2MessageTransferDataRequest) returns (N1N2MessageTransferDataResponse) {}
+}
+
+message N1N2MessageTransferDataResponse {
+  int32 pdu_session_id = 1;
+}
+
+message N1N2MessageTransferDataRequest {
+  N1Message n1_message = 1;
+  N2Info n2_info = 2;
+  bool skip_ind = 3;
+  bool last_msg_indication = 4;
+  int32 pdu_session_id = 5;
+  int32 ics_correlation_id = 6;
+  int32 ppi = 7;
+  Arp arp = 8; 
+  int32 fqi = 9; 
+  string n1n2_faliure_txf_notif_uri = 10;
+  bool smf_relocation_ind = 11;
+  string area_of_validity = 12; // *
+  string supported_features = 13; // *
+  Guami old_guami = 14;
+}
+
+// message Arp {
+//   string priority_level = 1;
+//   string preemption_capability = 2;
+//   string preemption_vulnerability = 3;
+// }
+
+message N1Message {
+  string n1_msg_class = 1; // or enum
+  string extended_protocol_discriminator = 2;
+  int32 pdu_session_id = 3;
+  int32 pti = 4;
+  int32 pdu_session_establishment_accept_msg_identity = 5;
+  string selected_pdu_session_type = 6;
+  string selected_ssc_mode = 7;
+  string authorized_qos_rules = 8; // *
+  Ambr session_ambr = 9; 
+}
+
+// message N1MessageContent {
+//   string extended_protocol_discriminator = 1;
+//   int32 pdu_session_id = 2;
+//   int32 pti = 3;
+//   int32 pdu_session_establishment_accept_msg_identity = 4;
+//   string selected_pdu_session_type = 5;
+//   string selected_ssc_mode = 6;
+//   string authorized_qos_rules = 7; // *
+//   Ambr session_ambr = 8; 
+// }
+
+message Ambr {
+  int32 bitrate_uplink = 1;
+  int32 bitrate_downlink = 2;
+}
+
+message N2Info {
+  string n2_information_class = 1;
+  int32 pdu_session_id = 2;
+  string ngap_ie_type = 3;
+  // NgapData ngap_data = 4;
+  string gtp_tunnel_endpoint_ip_address = 4;
+  string gtp_teid = 5;
+  string pdu_session_type = 6;
+  int32 qfi = 7;
+  QosFlowLevelQosParameters qos_flow_level_qos_parameters = 8;
+}
+
+// message N2SmInformation {
+//   int32 pdu_session_id = 1;
+//   string ngap_ie_type = 2;
+//   NgapData ngap_data = 3;
+// }
+
+// message NgapData {
+//   string gtp_tunnel_endpoint_ip_address = 1;
+//   string gtp_teid = 2;
+//   string pdu_session_type = 3;
+//   int32 qfi = 4;
+//   QosFlowLevelQosParameters qos_flow_level_qos_parameters = 5;
+// }
+
+// message QosFlowLevelQosParameters {
+//   int32 fqi = 1;
+//   string arp = 2;
+//   GbrQoSFlowInformation gbr_qos_flow_information = 3;
+// }
+
+// message GbrQoSFlowInformation {
+//   int32 maximum_flow_bitrate_downlink = 1;
+//   int32 maximum_flow_bitrate_uplink = 2;
+//   int32 guaranteed_flow_bitrate_downlink = 3;
+//   int32 guaranteed_flow_bitrate_uplink = 4;
+// }
+
+// message Guami {
+//   PlmnId plmn_id = 1;
+//   string amf_id = 2;
+// }
+
+// message PlmnId {
+//   string mcc = 1;
+//   string mnc = 2;
+// }

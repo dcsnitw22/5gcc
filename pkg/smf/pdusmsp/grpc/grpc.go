@@ -2,43 +2,63 @@ package grpc
 
 import (
 	"time"
+
 	//"net"
-	"k8s.io/klog"
 
 	//"w5gc.io/wipro5gcore/openapi"
-	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm"
+
+	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/config"
+	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc/grpcclient"
+	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc/grpcserver"
+	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc/protos"
 )
 
-const (
-	GrpcChannelCapacity = 100
-)
-
-type GrpcMessageInfo interface{}
-
-type GrpcMessage struct {
-	MsgType sm.MessageType
-	GrpcMsg *GrpcMessageInfo
-}
+// Grpc Interface will be used in pdusmsp.go as Grpc
 type Grpc interface {
 	Start()
-	WatchGrpcChannel() chan *GrpcMessage
+
+	WatchGrpcChannel() chan *grpcserver.GrpcMessage
+	SendSmContextCreateData(*protos.SmContextCreateDataRequest)
+	SendSmContextUpdateData(*protos.SmContextUpdateDataRequest)
+	SendSmContextReleaseData(*protos.SmContextReleaseDataRequest)
 }
 
+// GrpcInfo struct will implement Grpc Interface
 type GrpcInfo struct {
-	GrpcStartTime time.Time
-	GrpcChannel   chan *GrpcMessage
+	grpcStartTime time.Time
+
+	GrpcClient *grpcclient.GrpcClient // Client sends SmContextData requests
+	GrpcServer *grpcserver.GrpcServer // Server receives N1N2 Data from upfgw
 }
 
-func NewGrpc() Grpc {
+// Initialize with new data
+func NewGrpc(cfgServer config.GrpcServerInfoConfig, cfgClient config.GrpcClientInfoConfig) Grpc {
 	return &GrpcInfo{
-		GrpcChannel: make(chan *GrpcMessage, GrpcChannelCapacity),
+		GrpcClient: grpcclient.NewGrpcClient(cfgClient),
+		GrpcServer: grpcserver.NewGrpcServer(cfgServer),
 	}
 }
 
+// Start client and server
 func (g *GrpcInfo) Start() {
-	klog.Infof("Started pdusmsp grpc server")
+	go g.GrpcServer.Start()
+	g.GrpcClient.Start()
 }
 
-func (g *GrpcInfo) WatchGrpcChannel() chan *GrpcMessage {
-	return g.GrpcChannel
+// Implemented functions =====
+
+func (g *GrpcInfo) WatchGrpcChannel() chan *grpcserver.GrpcMessage {
+	return g.GrpcServer.WatchGrpcChannel()
+}
+
+func (g *GrpcInfo) SendSmContextCreateData(createData *protos.SmContextCreateDataRequest) {
+	g.GrpcClient.SendSmContextCreateData(createData)
+}
+
+func (g *GrpcInfo) SendSmContextUpdateData(updateData *protos.SmContextUpdateDataRequest) {
+	g.GrpcClient.SendSmContextUpdateData(updateData)
+}
+
+func (g *GrpcInfo) SendSmContextReleaseData(releaseData *protos.SmContextReleaseDataRequest) {
+	g.GrpcClient.SendSmContextReleaseData(releaseData)
 }

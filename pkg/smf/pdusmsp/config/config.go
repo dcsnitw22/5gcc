@@ -23,9 +23,11 @@ const (
 )
 
 type PdusmspConfig struct {
-	Version     string
-	NodeInfo    SmfNodeInfo
-	N11AmfNodes []N11AmfNodeInfo
+	Version        string
+	NodeInfo       SmfNodeInfo
+	GrpcServerInfo GrpcServerInfoConfig
+	GrpcClientInfo GrpcClientInfoConfig
+	N11AmfNodes    []N11AmfNodeInfo
 }
 
 type SmfNodeInfo struct {
@@ -33,6 +35,16 @@ type SmfNodeInfo struct {
 	ApiPort         string
 	LoadControl     bool
 	OverloadControl bool
+}
+
+type GrpcServerInfoConfig struct {
+	ServerIP   string
+	ServerPort string
+}
+
+type GrpcClientInfoConfig struct {
+	ClientIP   string
+	ClientPort string
 }
 
 type N11AmfNodeInfo struct {
@@ -53,7 +65,7 @@ var defaultPdusmspConfig = []byte(`
         "N11AmfNodes":[
                 {
                         "NodeId": "127.0.0.1",
-						"Port": "8080"
+						"Port": "8083"
                 },
 				{
 					"NodeId": "10.250.108.35",
@@ -63,7 +75,15 @@ var defaultPdusmspConfig = []byte(`
 					"NodeId": "10.250.110.37",
 					"Port": "8080"
 				}	
-        ]
+        ],
+		"GrpcServerInfo":{
+			"ServerIP": "127.0.0.1",
+			"ServerPort": "50051"
+		},
+		"GrpcClientInfo":{
+			"ClientIP": "127.0.0.1",
+			"ClientPort": "50052"
+		}
 }`)
 
 var ConfigChannel chan PdusmspConfig

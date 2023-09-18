@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/klog"
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/api"
-	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc"
+	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc/grpcserver"
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm"
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm/nodes"
 	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm/sessions"
@@ -31,7 +31,7 @@ type SessionMessageInfo struct {
 	OnCompleteFunc OnCompleteFunction // callback function when operation completes
 	MsgType        sm.MessageType
 	PdusmsMsg      api.SessionMessage // Message
-	GrpcMsg        grpc.GrpcMessage
+	GrpcMsg        grpcserver.GrpcMessage
 }
 
 type PdusmspSessionWorkers struct {

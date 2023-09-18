@@ -19,8 +19,11 @@ import (
 	"k8s.io/klog"
 	"w5gc.io/wipro5gcore/openapi/openapi_commn_client"
 	openapiserver "w5gc.io/wipro5gcore/openapi/openapiserver"
+	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/apiclient"
 	db "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/database"
 	redisClient "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/database/redis"
+	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc"
+	"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc/protos"
 )
 
 var (
@@ -51,7 +54,7 @@ type SessionManager interface {
 	ProcessNsmfRetrieveSmContextRequest(smContextRef string, smContextRetrieveData openapiserver.SmContextRetrieveData) (openapiserver.ImplResponse, error)
 	ProcessNsmfUpdateSmContextRequest(smContextRef string, smContextUpdateData openapiserver.SmContextUpdateData) (openapiserver.ImplResponse, error)
 	ProcessNsmfCreateSmContextRequest(jsonData openapiserver.SmContextCreateData, binaryDataN1SmMessage *os.File) (openapiserver.ImplResponse, error)
-	ProcessN1N2Message() error
+	ProcessN1N2Message(grpcMsg *protos.N1N2MessageTransferDataRequest) error
 }
 
 type SMContextMessage interface{}
@@ -78,10 +81,12 @@ type SmInfo struct {
 	// sessionDb *redis.Client // Redis client for database 0
 	// userDb    *redis.Client // Redis client for database 1
 	// dbClient *redis.Client
-	DbClient *db.DBInfo
+	DbClient  *db.DBInfo
+	grpc      *grpc.Grpc
+	apiClient apiclient.ApiClient
 }
 
-func NewSessionManager(info *db.DBInfo) *SmInfo {
+func NewSessionManager(info *db.DBInfo, grpc *grpc.Grpc, apiclient apiclient.ApiClient) *SmInfo {
 	// ctx := context.Background()
 	// sessionClient, err := redisClient.NewRedisClient(ctx, 0)
 	// if err != nil {
@@ -113,7 +118,9 @@ func NewSessionManager(info *db.DBInfo) *SmInfo {
 	// 	}
 	// }
 	return &SmInfo{
-		DbClient: info,
+		DbClient:  info,
+		grpc:      grpc,
+		apiClient: apiclient,
 	}
 }
 
@@ -289,9 +296,40 @@ func (s *SmInfo) ProcessNsmfCreateSmContextRequest(
 	}
 
 	ueContextId := jsonData.Supi
-	//TODO upf function addition
+	//grpc code
+	createData := protos.SmContextCreateDataRequest{
+		Supi:         jsonData.Supi,
+		PduSessionId: jsonData.PduSessionId,
+		Guami: &protos.Guami{
+			PlmnId: &protos.PlmnId{
+				Mcc: jsonData.Guami.PlmnId.Mcc,
+				Mnc: jsonData.Guami.PlmnId.Mnc,
+			},
+			AmfId: jsonData.Guami.AmfId,
+		},
+		ServingNfId: jsonData.ServingNfId,
+		// UnauthenticatedSupi: jsonData.UnauthenticatedSupi,
+		// Pei:                 jsonData.Pei,
+		// Gpsi:                jsonData.Gpsi,
+		// Dnn:                 jsonData.Dnn,
+		// ServingNetwork: &protos.PlmnId{
+		// 	Mcc: jsonData.ServingNetwork.Mcc,
+		// 	Mnc: jsonData.ServingNetwork.Mnc,
+		// },
+		// RequestType: string(jsonData.RequestType),
+		// N1SmMessage: &protos.N1SmMessage{
+		// 	PduSessionEstablishmentRequest: &protos.PduSessionEstablishmentRequest{
+		// 		PduSessionId: jsonData.PduSessionId,
+		// 	},
+		// },
+		// AnType:             string(jsonData.AnType),
+		// RatType:            string(jsonData.RatType),
+		// SmContextStatusUri: jsonData.SmContextStatusUri,
+	}
+	(*s.grpc).SendSmContextCreateData(&createData)
 
-	sessionData = SessionContext{Supi: jsonData.Supi,
+	sessionData = SessionContext{
+		Supi:                jsonData.Supi,
 		Pei:                 jsonData.Pei,
 		ServingNfId:         jsonData.ServingNfId,
 		State:               openapiserver.ACTIVATING,
@@ -409,11 +447,31 @@ func (s *SmInfo) ProcessNsmfReleaseSmContextRequest(smContextRef string, smConte
 
 	//TODO Release the IP addresses/prefixes and User Plane resources
 	//TODO smContextReleaseData.Cause=="PDU_SESSION_STATUS_MISMATCH"
-	err = s.ReleaseUPFResources(smcontext.N4SessionID)
-	if err != nil {
-		// Handle error releasing UPF resources
-		return openapiserver.Response(http.StatusInternalServerError, nil), errors.New("error releasing UPF resources")
+	//get some info from ngap message
+	releaseData := protos.SmContextReleaseDataRequest{
+		ServingNfId:  smcontext.ServingNfId,
+		Pei:          smcontext.Pei,
+		PduSessionId: smcontext.PduSessionId,
+		Guami: &protos.Guami{
+			PlmnId: &protos.PlmnId{
+				Mcc: smcontext.Guami.PlmnId.Mcc,
+				Mnc: smcontext.Guami.PlmnId.Mnc,
+			},
+			AmfId: smcontext.Guami.AmfId,
+		},
+		SmContextStatusUri: smcontext.SmContextStatusUri,
+		ServingNetwork: &protos.PlmnId{
+			Mcc: smcontext.ServingNetwork.Mcc,
+			Mnc: smcontext.ServingNetwork.Mnc,
+		},
 	}
+	(*s.grpc).SendSmContextReleaseData(&releaseData)
+
+	// err = s.ReleaseUPFResources(smcontext.N4SessionID)
+	// if err != nil {
+	// 	// Handle error releasing UPF resources
+	// 	return openapiserver.Response(http.StatusInternalServerError, nil), errors.New("error releasing UPF resources")
+	// }
 
 	var user UserContext
 
@@ -640,7 +698,29 @@ func (s *SmInfo) ProcessNsmfUpdateSmContextRequest(smContextRef string, smContex
 	*/ // Update the SM context
 	// Updates the SM context in the
 	//TODO check if field exists then only change
-	session := SessionContext{Pei: smContextUpdateData.Pei,
+
+	//fill pduSessionResourceSetup... after decode
+	updateData := protos.SmContextUpdateDataRequest{
+		ServingNfId:  sessionData.ServingNfId,
+		Pei:          sessionData.Pei,
+		PduSessionId: sessionData.PduSessionId,
+		Guami: &protos.Guami{
+			PlmnId: &protos.PlmnId{
+				Mcc: sessionData.Guami.PlmnId.Mcc,
+				Mnc: sessionData.Guami.PlmnId.Mnc,
+			},
+			AmfId: sessionData.Guami.AmfId,
+		},
+		SmContextStatusUri: sessionData.SmContextStatusUri,
+		ServingNetwork: &protos.PlmnId{
+			Mcc: sessionData.ServingNetwork.Mcc,
+			Mnc: sessionData.ServingNetwork.Mnc,
+		},
+	}
+	(*s.grpc).SendSmContextUpdateData(&updateData)
+
+	session := SessionContext{
+		Pei:                 smContextUpdateData.Pei,
 		ServingNfId:         smContextUpdateData.ServingNfId,
 		ServingNetwork:      smContextUpdateData.ServingNetwork,
 		Supi:                sessionData.Supi,
@@ -685,18 +765,80 @@ func (s *SmInfo) ProcessNsmfUpdateSmContextRequest(smContextRef string, smContex
 
 }
 
-func (s *SmInfo) ProcessN1N2Message() error {
-	//TODO retrieve data from db
-	// var sessionData SessionContext
-	// dbData, err := s.sessionDb.Get(s.ctx, smContextRef).Result()
-	// klog.Info(dbData, err)
-	// json.Unmarshal([]byte(dbData), &sessionData)
+func (s *SmInfo) ProcessN1N2Message(grpcMsg *protos.N1N2MessageTransferDataRequest) error {
+
+	n2InfoFile, _ := os.Open("/home/ubuntu/wipro5gc/n1n2msgtest.txt")
+	var n2Info string
+	json.Unmarshal([]byte(n2Info), grpcMsg)
+	n2InfoFile.WriteString(n2Info)
 
 	//TODO fill paramter
-	var n1n2Message openapi_commn_client.N1N2MessageTransferReqData
-	klog.Info(n1n2Message)
+	// area of vulnerability, n1messageContainer and n2sminfo missing
+	n1n2Message := openapi_commn_client.N1N2MessageTransferReqData{
+		PduSessionId: &grpcMsg.PduSessionId,
+		N1MessageContainer: &openapi_commn_client.N1MessageContainer{
+			N1MessageClass: openapi_commn_client.N1MessageClass{
+				String: &grpcMsg.N1Message.N1MsgClass,
+			},
+			N1MessageContent: openapi_commn_client.RefToBinaryData{
+				ContentId: "n1n2msgtest",
+			},
+		},
+		OldGuami: &openapi_commn_client.Guami{
+			PlmnId: openapi_commn_client.PlmnId{
+				Mcc: grpcMsg.OldGuami.PlmnId.Mcc,
+				Mnc: grpcMsg.OldGuami.PlmnId.Mnc,
+			},
+			AmfId: grpcMsg.OldGuami.AmfId,
+		},
+		//ask raghu to get info from grpc
+		N2InfoContainer: &openapi_commn_client.N2InfoContainer{
+			N2InformationClass: openapi_commn_client.N2InformationClass{
+				String: &grpcMsg.N2Info.N2InformationClass,
+			},
+			SmInfo: &openapi_commn_client.N2SmInformation{
+				PduSessionId: grpcMsg.PduSessionId,
+				N2InfoContent: &openapi_commn_client.N2InfoContent{
+					// NgapIeType: func() *openapi_commn_client.NgapIeType {
+					// 	a := string(grpcMsg.N2Info.NgapIeType)
+					// 	na := openapi_commn_client.NgapIeType(a)
+					// 	return &na
+					// }(), //resolve this giving stackoverflow
+					// NgapIeType: (*openapi_commn_client.NgapIeType)(&(grpcMsg.N2Info.NgapIeType)),
+					NgapIeType: &openapi_commn_client.NgapIeType{
+						String: &grpcMsg.N2Info.NgapIeType,
+					},
+					NgapData: openapi_commn_client.RefToBinaryData{
+						ContentId: "n1n2msgtest",
+					},
+				},
+			},
+		},
+		// Ppi: &grpcMsg.Ppi,
+		Arp: &openapi_commn_client.Arp{
+			PriorityLevel: *openapi_commn_client.NewNullableInt32(
+				func() *int32 {
+					val, _ := strconv.Atoi(grpcMsg.Arp.PriorityLevel)
+					nval := int32(val)
+					return &(nval)
+				}()),
+			PreemptCap: openapi_commn_client.PreemptionCapability{
+				String: &grpcMsg.Arp.PreemptionCapability,
+			},
+			PreemptVuln: openapi_commn_client.PreemptionVulnerability{
+				String: &grpcMsg.Arp.PreemptionVulnerability,
+			},
+		},
+		N1n2FailureTxfNotifURI: &grpcMsg.N1N2FaliureTxfNotifUri,
+		SmfReallocationInd:     &grpcMsg.SmfRelocationInd,
+		SupportedFeatures:      &grpcMsg.SupportedFeatures,
+	}
 
-	//TODO send to client code
+	n1, _ := os.Open("/home/ubuntu/wipro5gc/testdata/n1msgtest")
+	n2, _ := os.Open("/home/ubuntu/wipro5gc/testdata/n2infotest")
+	s.apiClient.N1N2MessageTransfer("127.0.0.1", n1n2Message, n1, n2)
+
+	klog.Info(n1n2Message)
 
 	return nil
 }

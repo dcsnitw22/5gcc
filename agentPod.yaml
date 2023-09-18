@@ -7,7 +7,7 @@ spec:
   containers:
     - name: docker
       # image: docker:19.03
-      image: docker-custom:latest
+      image: docker-custom-2:latest
       imagePullPolicy: IfNotPresent
       command:
         - cat

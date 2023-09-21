@@ -327,7 +327,6 @@ func (s *SmInfo) ProcessNsmfCreateSmContextRequest(
 		// SmContextStatusUri: jsonData.SmContextStatusUri,
 	}
 	(*s.grpc).SendSmContextCreateData(&createData)
-
 	sessionData = SessionContext{
 		Supi:                jsonData.Supi,
 		Pei:                 jsonData.Pei,
@@ -496,7 +495,7 @@ func (s *SmInfo) ProcessNsmfReleaseSmContextRequest(smContextRef string, smConte
 	}
 	user = UserContext{user.NoSession - 1}
 
-	_, err = s.DbClient.Redis.Create(smContextRef, UserContextToJSON(user), redisClient.UserDb)
+	_, err = s.DbClient.Redis.Create(smcontext.Supi, UserContextToJSON(user), redisClient.UserDb)
 
 	//err:= s.dbClient.Set(s.ctx, smContextRef, UserContextToJSON(user), 0).Err()
 	// err := s.userDb.Set(s.ctx, smcontext.Supi, UserContextToJSON(user), 0).Err()

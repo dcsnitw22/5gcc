@@ -73,16 +73,16 @@ func (rc *RedisInfo) ChangeRedisDatabase(redisDb Database) {
 		returns: None
 	*/
 	var err error
-	db := database2Int(redisDb)
-	// rc.Client, err = NewRedisClient(rc.Ctx, redisDb)
-	rc.Client.Options().DB = db
+	// db := database2Int(redisDb)
+	rc.Client, err = NewRedisClient(rc.Ctx, redisDb)
+	// rc.Client.Options().DB = db
 	if err != nil {
 		klog.Error(err.Error())
 	}
-	klog.Infof("Database changed to : %v", int2Database(rc.Client.Options().DB))
-
+	klog.Infof("Database changed to : %+v| database requested:%+v ", int2Database(rc.Client.Options().DB), redisDb)
 }
 
+// TODO return DATABSE,error
 func int2Database(dbnum int) Database {
 	/*
 		Convert int values to Database type values
@@ -98,6 +98,7 @@ func int2Database(dbnum int) Database {
 	return SessionDb
 }
 
+// TODO return INT,error
 func database2Int(redisDb Database) int {
 
 	/*

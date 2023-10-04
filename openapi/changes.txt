@@ -13,3 +13,11 @@ commented assert Condition raninfo nrppaInfo pwsInfo in openapi/openapi_commn_se
 commented assert Condition sNssai in openapi/openapi_commn_server/model_n2_sm_information.go
 // to make it compatable with openapi_commn_client
 changed type of ngapIeType to string /home/ubuntu/wipro5gc/openapi/openapi_commn_client/model_ngap_ie_type.go 
+changed model_up_cnx_state.go in openapiserver
+changed model_request_type.go in openapiserver
+changed model_ipv6_addr.go in openapiserver  //
+changed model_rat_type.go in openapiserver
+changed model_access_type.go in openapiserver
+changed model_dnn_selection_mode.go in openapiserver
+changed model_eps_interworking_indication.go in openapiserver
+changed model_max_integrity_protected_data_rat

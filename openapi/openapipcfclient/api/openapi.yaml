@@ -1,0 +1,4880 @@
+openapi: 3.0.0
+info:
+  description: |
+    Session Management Policy Control Service
+    © 2021, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TSDSI, TTA, TTC).
+    All rights reserved.
+  title: Npcf_SMPolicyControl API
+  version: 1.0.7
+externalDocs:
+  description: 3GPP TS 29.512 V15.10.0; 5G System; Session Management Policy Control
+    Service.
+  url: http://www.3gpp.org/ftp/Specs/archive/29_series/29.512/
+servers:
+- url: "{apiRoot}/npcf-smpolicycontrol/v1"
+  variables:
+    apiRoot:
+      default: https://example.com
+      description: apiRoot as defined in subclause 4.4 of 3GPP TS 29.501
+security:
+- {}
+- oAuth2Clientcredentials:
+  - npcf-smpolicycontrol
+paths:
+  /sm-policies:
+    post:
+      callbacks:
+        SmPolicyUpdateNotification:
+          '{$request.body#/notificationUri}/update':
+            post:
+              operationId: smPolicyUpdateNotification_UpdatePost
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/SmPolicyNotification'
+                required: true
+              responses:
+                "200":
+                  content:
+                    application/json:
+                      schema:
+                        oneOf:
+                        - $ref: '#/components/schemas/UeCampingRep'
+                        - items:
+                            $ref: '#/components/schemas/PartialSuccessReport'
+                          minItems: 1
+                          type: array
+                  description: OK. The current applicable values corresponding to
+                    the policy control request trigger is reported
+                "204":
+                  description: "No Content, Notification was succesfull"
+                "400":
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/ErrorReport'
+                  description: Bad Request.
+                "401":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Unauthorized
+                "403":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Forbidden
+                "404":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Not Found
+                "411":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Length Required
+                "413":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Payload Too Large
+                "415":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Unsupported Media Type
+                "429":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Too Many Requests
+                "500":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Internal Server Error
+                "503":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Service Unavailable
+                default:
+                  description: Generic Error
+              x-callback-request: true
+        SmPolicyControlTerminationRequestNotification:
+          '{$request.body#/notificationUri}/terminate':
+            post:
+              operationId: smPolicyControlTerminationRequestNotification_TerminatePost
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/TerminationNotification'
+                required: true
+              responses:
+                "204":
+                  description: "No Content, Notification was succesful"
+                "400":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Bad request
+                "401":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Unauthorized
+                "403":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Forbidden
+                "404":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Not Found
+                "411":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Length Required
+                "413":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Payload Too Large
+                "415":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Unsupported Media Type
+                "429":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Too Many Requests
+                "500":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Internal Server Error
+                "503":
+                  content:
+                    application/problem+json:
+                      schema:
+                        $ref: '#/components/schemas/ProblemDetails'
+                  description: Service Unavailable
+                default:
+                  description: Generic Error
+              x-callback-request: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmPolicyContextData'
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmPolicyDecision'
+          description: Created
+          headers:
+            Location:
+              description: Contains the URI of the newly created resource
+              explode: false
+              required: true
+              schema:
+                type: string
+              style: simple
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Bad request
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        "404":
+          description: Not Found
+        "411":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Length Required
+        "413":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Payload Too Large
+        "415":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unsupported Media Type
+        "429":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Too Many Requests
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Internal Server Error
+        "503":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Service Unavailable
+        default:
+          description: Generic Error
+  /sm-policies/{smPolicyId}:
+    get:
+      parameters:
+      - description: Identifier of a policy association
+        explode: false
+        in: path
+        name: smPolicyId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmPolicyControl'
+          description: OK. Resource representation is returned
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Bad request
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not Found
+        "406":
+          description: 406 Not Acceptable
+        "429":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Too Many Requests
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Internal Server Error
+        "503":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Service Unavailable
+        default:
+          description: Generic Error
+  /sm-policies/{smPolicyId}/update:
+    post:
+      parameters:
+      - description: Identifier of a policy association
+        explode: false
+        in: path
+        name: smPolicyId
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmPolicyUpdateContextData'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmPolicyDecision'
+          description: OK. Updated policies are returned
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Bad request
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not Found
+        "411":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Length Required
+        "413":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Payload Too Large
+        "415":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unsupported Media Type
+        "429":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Too Many Requests
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Internal Server Error
+        "503":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Service Unavailable
+        default:
+          description: Generic Error
+  /sm-policies/{smPolicyId}/delete:
+    post:
+      parameters:
+      - description: Identifier of a policy association
+        explode: false
+        in: path
+        name: smPolicyId
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmPolicyDeleteData'
+        required: true
+      responses:
+        "204":
+          description: No content
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Bad request
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unauthorized
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Forbidden
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Not Found
+        "411":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Length Required
+        "413":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Payload Too Large
+        "415":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Unsupported Media Type
+        "429":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Too Many Requests
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Internal Server Error
+        "503":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: Service Unavailable
+        default:
+          description: Generic Error
+components:
+  responses:
+    "400":
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+      description: Bad request
+    "401":
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+      description: Unauthorized
+    "403":
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+      description: Forbidden
+    "411":
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+      description: Length Required
+    "413":
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+      description: Payload Too Large
+    "415":
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+      description: Unsupported Media Type
+    "429":
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+      description: Too Many Requests
+    "500":
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+      description: Internal Server Error
+    "503":
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+      description: Service Unavailable
+    default:
+      description: Generic Error
+    "404":
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+      description: Not Found
+    "406":
+      description: 406 Not Acceptable
+  schemas:
+    SmPolicyControl:
+      example:
+        context:
+          smfId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          servNfId:
+            servNfInstId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            guami:
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              amfId: amfId
+            anGwAddr:
+              anGwIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+              anGwIpv4Addr: 198.51.100.1
+          notificationUri: notificationUri
+          ipv4Address: 198.51.100.1
+          gpsi: gpsi
+          userLocationInfo:
+            eutraLocation:
+              geographicalInformation: geographicalInformation
+              globalNgenbId:
+                gNbId:
+                  bitLength: 27
+                  gNBValue: gNBValue
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+                n3IwfId: n3IwfId
+                ngeNbId: ngeNbId
+              ageOfLocationInformation: 4803
+              tai:
+                tac: tac
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+              ueLocationTimestamp: 2000-01-23T04:56:07.000+00:00
+              geodeticInformation: geodeticInformation
+              ecgi:
+                eutraCellId: eutraCellId
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+            nrLocation:
+              geographicalInformation: geographicalInformation
+              globalGnbId:
+                gNbId:
+                  bitLength: 27
+                  gNBValue: gNBValue
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+                n3IwfId: n3IwfId
+                ngeNbId: ngeNbId
+              ageOfLocationInformation: 19536
+              ncgi:
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+                nrCellId: nrCellId
+              tai:
+                tac: tac
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+              ueLocationTimestamp: 2000-01-23T04:56:07.000+00:00
+              geodeticInformation: geodeticInformation
+            n3gaLocation:
+              ueIpv4Addr: 198.51.100.1
+              n3gppTai:
+                tac: tac
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+              ueIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+              n3IwfId: n3IwfId
+              portNumber: 0
+          subsDefQos:
+            priorityLevel: 89
+            "5qi": 58
+            arp:
+              priorityLevel: 9
+              preemptCap: null
+              preemptVuln: null
+          "3gppPsDataOffStatus": true
+          accessType: null
+          servingNetwork:
+            mnc: mnc
+            mcc: mcc
+          offline: true
+          interGrpIds:
+          - null
+          - null
+          ueTimeZone: ueTimeZone
+          chargingcharacteristics: chargingcharacteristics
+          pduSessionType: null
+          pei: pei
+          ipv6AddressPrefix: 2001:db8:abcd:12::0/64
+          subsSessAmbr:
+            uplink: uplink
+            downlink: downlink
+          pduSessionId: 153
+          invalidSupi: true
+          recoveryTime: 2000-01-23T04:56:07.000+00:00
+          dnn: dnn
+          ipDomain: ipDomain
+          ratType: null
+          refQosIndication: true
+          sliceInfo:
+            sd: sd
+            sst: 92
+          supi: supi
+          traceReq:
+            eventList: eventList
+            collectionEntityIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+            collectionEntityIpv4Addr: 198.51.100.1
+            traceRef: traceRef
+            interfaceList: interfaceList
+            neTypeList: neTypeList
+            traceDepth: null
+          numOfPackFilter: 9
+          qosFlowUsage: null
+          chargEntityAddr:
+            anChargIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+            anChargIpv4Addr: 198.51.100.1
+          online: true
+          accNetChId:
+            accNetChaIdValue: 0
+            sessionChScope: true
+            refPccRuleIds:
+            - refPccRuleIds
+            - refPccRuleIds
+          suppFeat: suppFeat
+        policy:
+          revalidationTime: 2000-01-23T04:56:07.000+00:00
+          traffContDecs:
+            key:
+              trafficSteeringPolIdDl: trafficSteeringPolIdDl
+              redirectInfo:
+                redirectServerAddress: redirectServerAddress
+                redirectEnabled: true
+                redirectAddressType: null
+              trafficSteeringPolIdUl: trafficSteeringPolIdUl
+              upPathChgEvent:
+                dnaiChgType: null
+                notifCorreId: notifCorreId
+                notificationUri: notificationUri
+              tcId: tcId
+              flowStatus: null
+              routeToLocs:
+              - dnai: dnai
+                routeInfo:
+                  ipv6Addr: 2001:db8:85a3::8a2e:370:7334
+                  ipv4Addr: 198.51.100.1
+                  portNumber: 0
+                routeProfId: routeProfId
+              - dnai: dnai
+                routeInfo:
+                  ipv6Addr: 2001:db8:85a3::8a2e:370:7334
+                  ipv4Addr: 198.51.100.1
+                  portNumber: 0
+                routeProfId: routeProfId
+              muteNotif: true
+          ipv4Index: 6
+          reflectiveQoSTimer: 6
+          lastReqUsageData:
+            allUmIds: true
+            refUmIds:
+            - refUmIds
+            - refUmIds
+          chargingInfo:
+            secondaryChfAddress: secondaryChfAddress
+            primaryChfAddress: primaryChfAddress
+          pcscfRestIndication: true
+          umDecs:
+            key:
+              nextVolThresholdDownlink: 0
+              nextTimeThreshold: 9
+              nextVolThreshold: 0
+              volumeThreshold: 0
+              monitoringTime: 2000-01-23T04:56:07.000+00:00
+              umId: umId
+              exUsagePccRuleIds:
+              - exUsagePccRuleIds
+              - exUsagePccRuleIds
+              timeThreshold: 9
+              inactivityTime: 6
+              volumeThresholdUplink: 0
+              volumeThresholdDownlink: 0
+              nextVolThresholdUplink: 0
+          praInfos:
+            key:
+              ecgiList:
+              - eutraCellId: eutraCellId
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+              - eutraCellId: eutraCellId
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+              globalRanNodeIdList:
+              - gNbId:
+                  bitLength: 27
+                  gNBValue: gNBValue
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+                n3IwfId: n3IwfId
+                ngeNbId: ngeNbId
+              - gNbId:
+                  bitLength: 27
+                  gNBValue: gNBValue
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+                n3IwfId: n3IwfId
+                ngeNbId: ngeNbId
+              presenceState: null
+              praId: praId
+              trackingAreaList:
+              - tac: tac
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+              - tac: tac
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+              ncgiList:
+              - plmnId:
+                  mnc: mnc
+                  mcc: mcc
+                nrCellId: nrCellId
+              - plmnId:
+                  mnc: mnc
+                  mcc: mcc
+                nrCellId: nrCellId
+          qosFlowUsage: null
+          pccRules:
+            key:
+              appReloc: true
+              refCondData: refCondData
+              afSigProtocol: null
+              appId: appId
+              contVer: 2
+              flowInfos:
+              - flowLabel: flowLabel
+                packFiltId: packFiltId
+                flowDirection: null
+                packetFilterUsage: true
+                tosTrafficClass: tosTrafficClass
+                spi: spi
+                flowDescription: flowDescription
+                ethFlowDescription:
+                  destMacAddr: destMacAddr
+                  sourceMacAddr: sourceMacAddr
+                  fDir: null
+                  ethType: ethType
+                  fDesc: fDesc
+                  vlanTags:
+                  - vlanTags
+                  - vlanTags
+              - flowLabel: flowLabel
+                packFiltId: packFiltId
+                flowDirection: null
+                packetFilterUsage: true
+                tosTrafficClass: tosTrafficClass
+                spi: spi
+                flowDescription: flowDescription
+                ethFlowDescription:
+                  destMacAddr: destMacAddr
+                  sourceMacAddr: sourceMacAddr
+                  fDir: null
+                  ethType: ethType
+                  fDesc: fDesc
+                  vlanTags:
+                  - vlanTags
+                  - vlanTags
+              refChgData:
+              - refChgData
+              pccRuleId: pccRuleId
+              refTcData:
+              - refTcData
+              refUmData:
+              - refUmData
+              precedence: 0
+              refQosData:
+              - refQosData
+          offline: true
+          policyCtrlReqTriggers:
+          - null
+          - null
+          conds:
+            key:
+              condId: condId
+              activationTime: 2000-01-23T04:56:07.000+00:00
+              deactivationTime: 2000-01-23T04:56:07.000+00:00
+          lastReqRuleData:
+          - reqData:
+            - null
+            - null
+            refPccRuleIds:
+            - refPccRuleIds
+            - refPccRuleIds
+          - reqData:
+            - null
+            - null
+            refPccRuleIds:
+            - refPccRuleIds
+            - refPccRuleIds
+          qosDecs:
+            key:
+              defQosFlowIndication: true
+              sharingKeyUl: sharingKeyUl
+              maxPacketLossRateDl: 738
+              gbrDl: gbrDl
+              maxDataBurstVol: 1698
+              qnc: true
+              maxbrDl: maxbrDl
+              "5qi": 237
+              reflectiveQos: true
+              priorityLevel: 46
+              sharingKeyDl: sharingKeyDl
+              maxPacketLossRateUl: 123
+              gbrUl: gbrUl
+              qosId: qosId
+              maxbrUl: maxbrUl
+              arp:
+                priorityLevel: 9
+                preemptCap: null
+                preemptVuln: null
+              averWindow: 830
+          online: true
+          ipv6Index: 3
+          sessRules:
+            key:
+              refCondData: refCondData
+              authSessAmbr:
+                uplink: uplink
+                downlink: downlink
+              authDefQos:
+                priorityLevel: 19
+                maxDataBurstVol: 2308
+                gbrDl: gbrDl
+                gbrUl: gbrUl
+                maxbrDl: maxbrDl
+                "5qi": 20
+                maxbrUl: maxbrUl
+                arp:
+                  priorityLevel: 9
+                  preemptCap: null
+                  preemptVuln: null
+                averWindow: 2441
+              sessRuleId: sessRuleId
+              refUmData: refUmData
+          qosChars:
+            key:
+              priorityLevel: 88
+              maxDataBurstVol: 2776
+              packetErrorRate: packetErrorRate
+              "5qi": 90
+              resourceType: null
+              packetDelayBudget: 1
+              averagingWindow: 1181
+          suppFeat: suppFeat
+          chgDecs:
+            key:
+              sdfHandl: true
+              offline: true
+              appSvcProvId: appSvcProvId
+              afChargingIdentifier: 0
+              ratingGroup: 0
+              meteringMethod: null
+              sponsorId: sponsorId
+              online: true
+              serviceId: 0
+              afChargId: afChargId
+              chgId: chgId
+              reportingLevel: null
+      properties:
+        context:
+          $ref: '#/components/schemas/SmPolicyContextData'
+        policy:
+          $ref: '#/components/schemas/SmPolicyDecision'
+      required:
+      - context
+      - policy
+      type: object
+    SmPolicyContextData:
+      example:
+        smfId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        servNfId:
+          servNfInstId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          guami:
+            plmnId:
+              mnc: mnc
+              mcc: mcc
+            amfId: amfId
+          anGwAddr:
+            anGwIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+            anGwIpv4Addr: 198.51.100.1
+        notificationUri: notificationUri
+        ipv4Address: 198.51.100.1
+        gpsi: gpsi
+        userLocationInfo:
+          eutraLocation:
+            geographicalInformation: geographicalInformation
+            globalNgenbId:
+              gNbId:
+                bitLength: 27
+                gNBValue: gNBValue
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              n3IwfId: n3IwfId
+              ngeNbId: ngeNbId
+            ageOfLocationInformation: 4803
+            tai:
+              tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            ueLocationTimestamp: 2000-01-23T04:56:07.000+00:00
+            geodeticInformation: geodeticInformation
+            ecgi:
+              eutraCellId: eutraCellId
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+          nrLocation:
+            geographicalInformation: geographicalInformation
+            globalGnbId:
+              gNbId:
+                bitLength: 27
+                gNBValue: gNBValue
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              n3IwfId: n3IwfId
+              ngeNbId: ngeNbId
+            ageOfLocationInformation: 19536
+            ncgi:
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              nrCellId: nrCellId
+            tai:
+              tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            ueLocationTimestamp: 2000-01-23T04:56:07.000+00:00
+            geodeticInformation: geodeticInformation
+          n3gaLocation:
+            ueIpv4Addr: 198.51.100.1
+            n3gppTai:
+              tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            ueIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+            n3IwfId: n3IwfId
+            portNumber: 0
+        subsDefQos:
+          priorityLevel: 89
+          "5qi": 58
+          arp:
+            priorityLevel: 9
+            preemptCap: null
+            preemptVuln: null
+        "3gppPsDataOffStatus": true
+        accessType: null
+        servingNetwork:
+          mnc: mnc
+          mcc: mcc
+        offline: true
+        interGrpIds:
+        - null
+        - null
+        ueTimeZone: ueTimeZone
+        chargingcharacteristics: chargingcharacteristics
+        pduSessionType: null
+        pei: pei
+        ipv6AddressPrefix: 2001:db8:abcd:12::0/64
+        subsSessAmbr:
+          uplink: uplink
+          downlink: downlink
+        pduSessionId: 153
+        invalidSupi: true
+        recoveryTime: 2000-01-23T04:56:07.000+00:00
+        dnn: dnn
+        ipDomain: ipDomain
+        ratType: null
+        refQosIndication: true
+        sliceInfo:
+          sd: sd
+          sst: 92
+        supi: supi
+        traceReq:
+          eventList: eventList
+          collectionEntityIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+          collectionEntityIpv4Addr: 198.51.100.1
+          traceRef: traceRef
+          interfaceList: interfaceList
+          neTypeList: neTypeList
+          traceDepth: null
+        numOfPackFilter: 9
+        qosFlowUsage: null
+        chargEntityAddr:
+          anChargIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+          anChargIpv4Addr: 198.51.100.1
+        online: true
+        accNetChId:
+          accNetChaIdValue: 0
+          sessionChScope: true
+          refPccRuleIds:
+          - refPccRuleIds
+          - refPccRuleIds
+        suppFeat: suppFeat
+      properties:
+        accNetChId:
+          $ref: '#/components/schemas/AccNetChId'
+        chargEntityAddr:
+          $ref: '#/components/schemas/AccNetChargingAddress'
+        gpsi:
+          pattern: "^(msisdn-[0-9]{5,15}|extid-[^@]+@[^@]+|.+)$"
+          type: string
+        supi:
+          pattern: "^(imsi-[0-9]{5,15}|nai-.+|.+)$"
+          type: string
+        invalidSupi:
+          description: "When this attribute is included and set to true, it indicates\
+            \ that the supi attribute contains an invalid value.This attribute shall\
+            \ be present if the SUPI is not available in the SMF or the SUPI is unauthenticated.\
+            \ When present it shall be set to true for an invalid SUPI and false (default)\
+            \ for a valid SUPI."
+          type: boolean
+        interGrpIds:
+          items:
+            $ref: '#/components/schemas/GroupId'
+          minItems: 1
+          type: array
+        pduSessionId:
+          maximum: 255
+          minimum: 0
+          type: integer
+        pduSessionType:
+          $ref: '#/components/schemas/PduSessionType'
+        chargingcharacteristics:
+          type: string
+        dnn:
+          type: string
+        notificationUri:
+          type: string
+        accessType:
+          $ref: '#/components/schemas/AccessType'
+        ratType:
+          $ref: '#/components/schemas/RatType'
+        servingNetwork:
+          $ref: '#/components/schemas/NetworkId'
+        userLocationInfo:
+          $ref: '#/components/schemas/UserLocation'
+        ueTimeZone:
+          type: string
+        pei:
+          pattern: "^(imei-[0-9]{15}|imeisv-[0-9]{16}|.+)$"
+          type: string
+        ipv4Address:
+          example: 198.51.100.1
+          pattern: "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$"
+          type: string
+        ipv6AddressPrefix:
+          $ref: '#/components/schemas/Ipv6Prefix'
+        ipDomain:
+          description: Indicates the IPv4 address domain
+          type: string
+        subsSessAmbr:
+          $ref: '#/components/schemas/Ambr'
+        subsDefQos:
+          $ref: '#/components/schemas/SubscribedDefaultQos'
+        numOfPackFilter:
+          description: Contains the number of supported packet filter for signalled
+            QoS rules.
+          type: integer
+        online:
+          description: "If it is included and set to true, the online charging is\
+            \ applied to the PDU session."
+          type: boolean
+        offline:
+          description: "If it is included and set to true, the offline charging is\
+            \ applied to the PDU session."
+          type: boolean
+        "3gppPsDataOffStatus":
+          description: "If it is included and set to true, the 3GPP PS Data Off is\
+            \ activated by the UE."
+          type: boolean
+        refQosIndication:
+          description: "If it is included and set to true, the reflective QoS is supported\
+            \ by the UE."
+          type: boolean
+        traceReq:
+          $ref: '#/components/schemas/TraceData'
+        sliceInfo:
+          $ref: '#/components/schemas/Snssai'
+        qosFlowUsage:
+          $ref: '#/components/schemas/QosFlowUsage'
+        servNfId:
+          $ref: '#/components/schemas/ServingNfIdentity'
+        suppFeat:
+          pattern: "^[A-Fa-f0-9]*$"
+          type: string
+        smfId:
+          format: uuid
+          type: string
+        recoveryTime:
+          format: date-time
+          type: string
+      required:
+      - dnn
+      - notificationUri
+      - pduSessionId
+      - pduSessionType
+      - sliceInfo
+      - supi
+      type: object
+    SmPolicyDecision:
+      example:
+        revalidationTime: 2000-01-23T04:56:07.000+00:00
+        traffContDecs:
+          key:
+            trafficSteeringPolIdDl: trafficSteeringPolIdDl
+            redirectInfo:
+              redirectServerAddress: redirectServerAddress
+              redirectEnabled: true
+              redirectAddressType: null
+            trafficSteeringPolIdUl: trafficSteeringPolIdUl
+            upPathChgEvent:
+              dnaiChgType: null
+              notifCorreId: notifCorreId
+              notificationUri: notificationUri
+            tcId: tcId
+            flowStatus: null
+            routeToLocs:
+            - dnai: dnai
+              routeInfo:
+                ipv6Addr: 2001:db8:85a3::8a2e:370:7334
+                ipv4Addr: 198.51.100.1
+                portNumber: 0
+              routeProfId: routeProfId
+            - dnai: dnai
+              routeInfo:
+                ipv6Addr: 2001:db8:85a3::8a2e:370:7334
+                ipv4Addr: 198.51.100.1
+                portNumber: 0
+              routeProfId: routeProfId
+            muteNotif: true
+        ipv4Index: 6
+        reflectiveQoSTimer: 6
+        lastReqUsageData:
+          allUmIds: true
+          refUmIds:
+          - refUmIds
+          - refUmIds
+        chargingInfo:
+          secondaryChfAddress: secondaryChfAddress
+          primaryChfAddress: primaryChfAddress
+        pcscfRestIndication: true
+        umDecs:
+          key:
+            nextVolThresholdDownlink: 0
+            nextTimeThreshold: 9
+            nextVolThreshold: 0
+            volumeThreshold: 0
+            monitoringTime: 2000-01-23T04:56:07.000+00:00
+            umId: umId
+            exUsagePccRuleIds:
+            - exUsagePccRuleIds
+            - exUsagePccRuleIds
+            timeThreshold: 9
+            inactivityTime: 6
+            volumeThresholdUplink: 0
+            volumeThresholdDownlink: 0
+            nextVolThresholdUplink: 0
+        praInfos:
+          key:
+            ecgiList:
+            - eutraCellId: eutraCellId
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            - eutraCellId: eutraCellId
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            globalRanNodeIdList:
+            - gNbId:
+                bitLength: 27
+                gNBValue: gNBValue
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              n3IwfId: n3IwfId
+              ngeNbId: ngeNbId
+            - gNbId:
+                bitLength: 27
+                gNBValue: gNBValue
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              n3IwfId: n3IwfId
+              ngeNbId: ngeNbId
+            presenceState: null
+            praId: praId
+            trackingAreaList:
+            - tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            - tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            ncgiList:
+            - plmnId:
+                mnc: mnc
+                mcc: mcc
+              nrCellId: nrCellId
+            - plmnId:
+                mnc: mnc
+                mcc: mcc
+              nrCellId: nrCellId
+        qosFlowUsage: null
+        pccRules:
+          key:
+            appReloc: true
+            refCondData: refCondData
+            afSigProtocol: null
+            appId: appId
+            contVer: 2
+            flowInfos:
+            - flowLabel: flowLabel
+              packFiltId: packFiltId
+              flowDirection: null
+              packetFilterUsage: true
+              tosTrafficClass: tosTrafficClass
+              spi: spi
+              flowDescription: flowDescription
+              ethFlowDescription:
+                destMacAddr: destMacAddr
+                sourceMacAddr: sourceMacAddr
+                fDir: null
+                ethType: ethType
+                fDesc: fDesc
+                vlanTags:
+                - vlanTags
+                - vlanTags
+            - flowLabel: flowLabel
+              packFiltId: packFiltId
+              flowDirection: null
+              packetFilterUsage: true
+              tosTrafficClass: tosTrafficClass
+              spi: spi
+              flowDescription: flowDescription
+              ethFlowDescription:
+                destMacAddr: destMacAddr
+                sourceMacAddr: sourceMacAddr
+                fDir: null
+                ethType: ethType
+                fDesc: fDesc
+                vlanTags:
+                - vlanTags
+                - vlanTags
+            refChgData:
+            - refChgData
+            pccRuleId: pccRuleId
+            refTcData:
+            - refTcData
+            refUmData:
+            - refUmData
+            precedence: 0
+            refQosData:
+            - refQosData
+        offline: true
+        policyCtrlReqTriggers:
+        - null
+        - null
+        conds:
+          key:
+            condId: condId
+            activationTime: 2000-01-23T04:56:07.000+00:00
+            deactivationTime: 2000-01-23T04:56:07.000+00:00
+        lastReqRuleData:
+        - reqData:
+          - null
+          - null
+          refPccRuleIds:
+          - refPccRuleIds
+          - refPccRuleIds
+        - reqData:
+          - null
+          - null
+          refPccRuleIds:
+          - refPccRuleIds
+          - refPccRuleIds
+        qosDecs:
+          key:
+            defQosFlowIndication: true
+            sharingKeyUl: sharingKeyUl
+            maxPacketLossRateDl: 738
+            gbrDl: gbrDl
+            maxDataBurstVol: 1698
+            qnc: true
+            maxbrDl: maxbrDl
+            "5qi": 237
+            reflectiveQos: true
+            priorityLevel: 46
+            sharingKeyDl: sharingKeyDl
+            maxPacketLossRateUl: 123
+            gbrUl: gbrUl
+            qosId: qosId
+            maxbrUl: maxbrUl
+            arp:
+              priorityLevel: 9
+              preemptCap: null
+              preemptVuln: null
+            averWindow: 830
+        online: true
+        ipv6Index: 3
+        sessRules:
+          key:
+            refCondData: refCondData
+            authSessAmbr:
+              uplink: uplink
+              downlink: downlink
+            authDefQos:
+              priorityLevel: 19
+              maxDataBurstVol: 2308
+              gbrDl: gbrDl
+              gbrUl: gbrUl
+              maxbrDl: maxbrDl
+              "5qi": 20
+              maxbrUl: maxbrUl
+              arp:
+                priorityLevel: 9
+                preemptCap: null
+                preemptVuln: null
+              averWindow: 2441
+            sessRuleId: sessRuleId
+            refUmData: refUmData
+        qosChars:
+          key:
+            priorityLevel: 88
+            maxDataBurstVol: 2776
+            packetErrorRate: packetErrorRate
+            "5qi": 90
+            resourceType: null
+            packetDelayBudget: 1
+            averagingWindow: 1181
+        suppFeat: suppFeat
+        chgDecs:
+          key:
+            sdfHandl: true
+            offline: true
+            appSvcProvId: appSvcProvId
+            afChargingIdentifier: 0
+            ratingGroup: 0
+            meteringMethod: null
+            sponsorId: sponsorId
+            online: true
+            serviceId: 0
+            afChargId: afChargId
+            chgId: chgId
+            reportingLevel: null
+      properties:
+        sessRules:
+          additionalProperties:
+            $ref: '#/components/schemas/SessionRule'
+          description: A map of Sessionrules with the content being the SessionRule
+            as described in subclause 5.6.2.7.
+          minProperties: 1
+          type: object
+        pccRules:
+          additionalProperties:
+            $ref: '#/components/schemas/PccRule'
+          description: A map of PCC rules with the content being the PCCRule as described
+            in subclause 5.6.2.6.
+          minProperties: 1
+          nullable: true
+          type: object
+        pcscfRestIndication:
+          description: "If it is included and set to true, it indicates the P-CSCF\
+            \ Restoration is requested."
+          type: boolean
+        qosDecs:
+          additionalProperties:
+            $ref: '#/components/schemas/QosData'
+          description: Map of QoS data policy decisions.
+          minProperties: 1
+          type: object
+        chgDecs:
+          additionalProperties:
+            $ref: '#/components/schemas/ChargingData'
+          description: Map of Charging data policy decisions.
+          minProperties: 1
+          nullable: true
+          type: object
+        chargingInfo:
+          $ref: '#/components/schemas/ChargingInformation'
+        traffContDecs:
+          additionalProperties:
+            $ref: '#/components/schemas/TrafficControlData'
+          description: Map of Traffic Control data policy decisions.
+          minProperties: 1
+          type: object
+        umDecs:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageMonitoringData'
+          description: Map of Usage Monitoring data policy decisions.
+          minProperties: 1
+          nullable: true
+          type: object
+        qosChars:
+          additionalProperties:
+            $ref: '#/components/schemas/QosCharacteristics'
+          description: Map of QoS characteristics for non standard 5QIs. This map
+            uses the 5QI values as keys.
+          minProperties: 1
+          type: object
+        reflectiveQoSTimer:
+          type: integer
+        conds:
+          additionalProperties:
+            $ref: '#/components/schemas/ConditionData'
+          description: A map of condition data with the content being as described
+            in subclause 5.6.2.9.
+          minProperties: 1
+          nullable: true
+          type: object
+        revalidationTime:
+          format: date-time
+          type: string
+        offline:
+          description: Indicates the offline charging is applicable to the PDU session
+            when it is included and set to true.
+          type: boolean
+        online:
+          description: Indicates the online charging is applicable to the PDU session
+            or PCC rule when it is included and set to true.
+          type: boolean
+        policyCtrlReqTriggers:
+          description: Defines the policy control request triggers subscribed by the
+            PCF.
+          items:
+            $ref: '#/components/schemas/PolicyControlRequestTrigger'
+          minItems: 1
+          nullable: true
+          type: array
+        lastReqRuleData:
+          description: Defines the last list of rule control data requested by the
+            PCF.
+          items:
+            $ref: '#/components/schemas/RequestedRuleData'
+          minItems: 1
+          type: array
+        lastReqUsageData:
+          $ref: '#/components/schemas/RequestedUsageData'
+        praInfos:
+          additionalProperties:
+            $ref: '#/components/schemas/PresenceInfoRm'
+          description: Map of PRA information.
+          minProperties: 1
+          nullable: true
+          type: object
+        ipv4Index:
+          type: integer
+        ipv6Index:
+          type: integer
+        qosFlowUsage:
+          $ref: '#/components/schemas/QosFlowUsage'
+        suppFeat:
+          pattern: "^[A-Fa-f0-9]*$"
+          type: string
+      type: object
+    SmPolicyNotification:
+      example:
+        smPolicyDecision:
+          revalidationTime: 2000-01-23T04:56:07.000+00:00
+          traffContDecs:
+            key:
+              trafficSteeringPolIdDl: trafficSteeringPolIdDl
+              redirectInfo:
+                redirectServerAddress: redirectServerAddress
+                redirectEnabled: true
+                redirectAddressType: null
+              trafficSteeringPolIdUl: trafficSteeringPolIdUl
+              upPathChgEvent:
+                dnaiChgType: null
+                notifCorreId: notifCorreId
+                notificationUri: notificationUri
+              tcId: tcId
+              flowStatus: null
+              routeToLocs:
+              - dnai: dnai
+                routeInfo:
+                  ipv6Addr: 2001:db8:85a3::8a2e:370:7334
+                  ipv4Addr: 198.51.100.1
+                  portNumber: 0
+                routeProfId: routeProfId
+              - dnai: dnai
+                routeInfo:
+                  ipv6Addr: 2001:db8:85a3::8a2e:370:7334
+                  ipv4Addr: 198.51.100.1
+                  portNumber: 0
+                routeProfId: routeProfId
+              muteNotif: true
+          ipv4Index: 6
+          reflectiveQoSTimer: 6
+          lastReqUsageData:
+            allUmIds: true
+            refUmIds:
+            - refUmIds
+            - refUmIds
+          chargingInfo:
+            secondaryChfAddress: secondaryChfAddress
+            primaryChfAddress: primaryChfAddress
+          pcscfRestIndication: true
+          umDecs:
+            key:
+              nextVolThresholdDownlink: 0
+              nextTimeThreshold: 9
+              nextVolThreshold: 0
+              volumeThreshold: 0
+              monitoringTime: 2000-01-23T04:56:07.000+00:00
+              umId: umId
+              exUsagePccRuleIds:
+              - exUsagePccRuleIds
+              - exUsagePccRuleIds
+              timeThreshold: 9
+              inactivityTime: 6
+              volumeThresholdUplink: 0
+              volumeThresholdDownlink: 0
+              nextVolThresholdUplink: 0
+          praInfos:
+            key:
+              ecgiList:
+              - eutraCellId: eutraCellId
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+              - eutraCellId: eutraCellId
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+              globalRanNodeIdList:
+              - gNbId:
+                  bitLength: 27
+                  gNBValue: gNBValue
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+                n3IwfId: n3IwfId
+                ngeNbId: ngeNbId
+              - gNbId:
+                  bitLength: 27
+                  gNBValue: gNBValue
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+                n3IwfId: n3IwfId
+                ngeNbId: ngeNbId
+              presenceState: null
+              praId: praId
+              trackingAreaList:
+              - tac: tac
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+              - tac: tac
+                plmnId:
+                  mnc: mnc
+                  mcc: mcc
+              ncgiList:
+              - plmnId:
+                  mnc: mnc
+                  mcc: mcc
+                nrCellId: nrCellId
+              - plmnId:
+                  mnc: mnc
+                  mcc: mcc
+                nrCellId: nrCellId
+          qosFlowUsage: null
+          pccRules:
+            key:
+              appReloc: true
+              refCondData: refCondData
+              afSigProtocol: null
+              appId: appId
+              contVer: 2
+              flowInfos:
+              - flowLabel: flowLabel
+                packFiltId: packFiltId
+                flowDirection: null
+                packetFilterUsage: true
+                tosTrafficClass: tosTrafficClass
+                spi: spi
+                flowDescription: flowDescription
+                ethFlowDescription:
+                  destMacAddr: destMacAddr
+                  sourceMacAddr: sourceMacAddr
+                  fDir: null
+                  ethType: ethType
+                  fDesc: fDesc
+                  vlanTags:
+                  - vlanTags
+                  - vlanTags
+              - flowLabel: flowLabel
+                packFiltId: packFiltId
+                flowDirection: null
+                packetFilterUsage: true
+                tosTrafficClass: tosTrafficClass
+                spi: spi
+                flowDescription: flowDescription
+                ethFlowDescription:
+                  destMacAddr: destMacAddr
+                  sourceMacAddr: sourceMacAddr
+                  fDir: null
+                  ethType: ethType
+                  fDesc: fDesc
+                  vlanTags:
+                  - vlanTags
+                  - vlanTags
+              refChgData:
+              - refChgData
+              pccRuleId: pccRuleId
+              refTcData:
+              - refTcData
+              refUmData:
+              - refUmData
+              precedence: 0
+              refQosData:
+              - refQosData
+          offline: true
+          policyCtrlReqTriggers:
+          - null
+          - null
+          conds:
+            key:
+              condId: condId
+              activationTime: 2000-01-23T04:56:07.000+00:00
+              deactivationTime: 2000-01-23T04:56:07.000+00:00
+          lastReqRuleData:
+          - reqData:
+            - null
+            - null
+            refPccRuleIds:
+            - refPccRuleIds
+            - refPccRuleIds
+          - reqData:
+            - null
+            - null
+            refPccRuleIds:
+            - refPccRuleIds
+            - refPccRuleIds
+          qosDecs:
+            key:
+              defQosFlowIndication: true
+              sharingKeyUl: sharingKeyUl
+              maxPacketLossRateDl: 738
+              gbrDl: gbrDl
+              maxDataBurstVol: 1698
+              qnc: true
+              maxbrDl: maxbrDl
+              "5qi": 237
+              reflectiveQos: true
+              priorityLevel: 46
+              sharingKeyDl: sharingKeyDl
+              maxPacketLossRateUl: 123
+              gbrUl: gbrUl
+              qosId: qosId
+              maxbrUl: maxbrUl
+              arp:
+                priorityLevel: 9
+                preemptCap: null
+                preemptVuln: null
+              averWindow: 830
+          online: true
+          ipv6Index: 3
+          sessRules:
+            key:
+              refCondData: refCondData
+              authSessAmbr:
+                uplink: uplink
+                downlink: downlink
+              authDefQos:
+                priorityLevel: 19
+                maxDataBurstVol: 2308
+                gbrDl: gbrDl
+                gbrUl: gbrUl
+                maxbrDl: maxbrDl
+                "5qi": 20
+                maxbrUl: maxbrUl
+                arp:
+                  priorityLevel: 9
+                  preemptCap: null
+                  preemptVuln: null
+                averWindow: 2441
+              sessRuleId: sessRuleId
+              refUmData: refUmData
+          qosChars:
+            key:
+              priorityLevel: 88
+              maxDataBurstVol: 2776
+              packetErrorRate: packetErrorRate
+              "5qi": 90
+              resourceType: null
+              packetDelayBudget: 1
+              averagingWindow: 1181
+          suppFeat: suppFeat
+          chgDecs:
+            key:
+              sdfHandl: true
+              offline: true
+              appSvcProvId: appSvcProvId
+              afChargingIdentifier: 0
+              ratingGroup: 0
+              meteringMethod: null
+              sponsorId: sponsorId
+              online: true
+              serviceId: 0
+              afChargId: afChargId
+              chgId: chgId
+              reportingLevel: null
+        resourceUri: resourceUri
+      properties:
+        resourceUri:
+          type: string
+        smPolicyDecision:
+          $ref: '#/components/schemas/SmPolicyDecision'
+      type: object
+    PccRule:
+      example:
+        appReloc: true
+        refCondData: refCondData
+        afSigProtocol: null
+        appId: appId
+        contVer: 2
+        flowInfos:
+        - flowLabel: flowLabel
+          packFiltId: packFiltId
+          flowDirection: null
+          packetFilterUsage: true
+          tosTrafficClass: tosTrafficClass
+          spi: spi
+          flowDescription: flowDescription
+          ethFlowDescription:
+            destMacAddr: destMacAddr
+            sourceMacAddr: sourceMacAddr
+            fDir: null
+            ethType: ethType
+            fDesc: fDesc
+            vlanTags:
+            - vlanTags
+            - vlanTags
+        - flowLabel: flowLabel
+          packFiltId: packFiltId
+          flowDirection: null
+          packetFilterUsage: true
+          tosTrafficClass: tosTrafficClass
+          spi: spi
+          flowDescription: flowDescription
+          ethFlowDescription:
+            destMacAddr: destMacAddr
+            sourceMacAddr: sourceMacAddr
+            fDir: null
+            ethType: ethType
+            fDesc: fDesc
+            vlanTags:
+            - vlanTags
+            - vlanTags
+        refChgData:
+        - refChgData
+        pccRuleId: pccRuleId
+        refTcData:
+        - refTcData
+        refUmData:
+        - refUmData
+        precedence: 0
+        refQosData:
+        - refQosData
+      nullable: true
+      properties:
+        flowInfos:
+          description: An array of IP flow packet filter information.
+          items:
+            $ref: '#/components/schemas/FlowInformation'
+          minItems: 1
+          type: array
+        appId:
+          description: A reference to the application detection filter configured
+            at the UPF.
+          type: string
+        contVer:
+          description: Represents the content version of some content.
+          type: integer
+        pccRuleId:
+          description: Univocally identifies the PCC rule within a PDU session.
+          type: string
+        precedence:
+          minimum: 0
+          type: integer
+        afSigProtocol:
+          $ref: '#/components/schemas/AfSigProtocol'
+        appReloc:
+          description: Indication of application relocation possibility.
+          type: boolean
+        refQosData:
+          description: A reference to the QosData policy decision type. It is the
+            qosId described in subclause 5.6.2.8.
+          items:
+            type: string
+          maxItems: 1
+          minItems: 1
+          type: array
+        refTcData:
+          description: A reference to the TrafficControlData policy decision type.
+            It is the tcId described in subclause 5.6.2.10.
+          items:
+            type: string
+          maxItems: 1
+          minItems: 1
+          type: array
+        refChgData:
+          description: A reference to the ChargingData policy decision type. It is
+            the chgId described in subclause 5.6.2.11.
+          items:
+            type: string
+          maxItems: 1
+          minItems: 1
+          nullable: true
+          type: array
+        refUmData:
+          description: A reference to UsageMonitoringData policy decision type. It
+            is the umId described in subclause 5.6.2.12.
+          items:
+            type: string
+          maxItems: 1
+          minItems: 1
+          nullable: true
+          type: array
+        refCondData:
+          description: A reference to the condition data. It is the condId described
+            in subclause 5.6.2.9.
+          nullable: true
+          type: string
+      required:
+      - pccRuleId
+      type: object
+    SessionRule:
+      example:
+        refCondData: refCondData
+        authSessAmbr:
+          uplink: uplink
+          downlink: downlink
+        authDefQos:
+          priorityLevel: 19
+          maxDataBurstVol: 2308
+          gbrDl: gbrDl
+          gbrUl: gbrUl
+          maxbrDl: maxbrDl
+          "5qi": 20
+          maxbrUl: maxbrUl
+          arp:
+            priorityLevel: 9
+            preemptCap: null
+            preemptVuln: null
+          averWindow: 2441
+        sessRuleId: sessRuleId
+        refUmData: refUmData
+      nullable: true
+      properties:
+        authSessAmbr:
+          $ref: '#/components/schemas/Ambr'
+        authDefQos:
+          $ref: '#/components/schemas/AuthorizedDefaultQos'
+        sessRuleId:
+          description: Univocally identifies the session rule within a PDU session.
+          type: string
+        refUmData:
+          description: A reference to UsageMonitoringData policy decision type. It
+            is the umId described in subclause 5.6.2.12.
+          nullable: true
+          type: string
+        refCondData:
+          description: A reference to the condition data. It is the condId described
+            in subclause 5.6.2.9.
+          nullable: true
+          type: string
+      required:
+      - sessRuleId
+      type: object
+    QosData:
+      example:
+        defQosFlowIndication: true
+        sharingKeyUl: sharingKeyUl
+        maxPacketLossRateDl: 738
+        gbrDl: gbrDl
+        maxDataBurstVol: 1698
+        qnc: true
+        maxbrDl: maxbrDl
+        "5qi": 237
+        reflectiveQos: true
+        priorityLevel: 46
+        sharingKeyDl: sharingKeyDl
+        maxPacketLossRateUl: 123
+        gbrUl: gbrUl
+        qosId: qosId
+        maxbrUl: maxbrUl
+        arp:
+          priorityLevel: 9
+          preemptCap: null
+          preemptVuln: null
+        averWindow: 830
+      nullable: true
+      properties:
+        qosId:
+          description: Univocally identifies the QoS control policy data within a
+            PDU session.
+          type: string
+        "5qi":
+          maximum: 255
+          minimum: 0
+          type: integer
+        maxbrUl:
+          nullable: true
+          pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+          type: string
+        maxbrDl:
+          nullable: true
+          pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+          type: string
+        gbrUl:
+          nullable: true
+          pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+          type: string
+        gbrDl:
+          nullable: true
+          pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+          type: string
+        arp:
+          $ref: '#/components/schemas/Arp'
+        qnc:
+          description: Indicates whether notifications are requested from 3GPP NG-RAN
+            when the GFBR can no longer (or again) be guaranteed for a QoS Flow during
+            the lifetime of the QoS Flow.
+          type: boolean
+        priorityLevel:
+          maximum: 127
+          minimum: 1
+          nullable: true
+          type: integer
+        averWindow:
+          default: 2000
+          maximum: 4095
+          minimum: 1
+          nullable: true
+          type: integer
+        maxDataBurstVol:
+          maximum: 4095
+          minimum: 1
+          nullable: true
+          type: integer
+        reflectiveQos:
+          description: Indicates whether the QoS information is reflective for the
+            corresponding service data flow.
+          type: boolean
+        sharingKeyDl:
+          description: "Indicates, by containing the same value, what PCC rules may\
+            \ share resource in downlink direction."
+          type: string
+        sharingKeyUl:
+          description: "Indicates, by containing the same value, what PCC rules may\
+            \ share resource in uplink direction."
+          type: string
+        maxPacketLossRateDl:
+          maximum: 1000
+          minimum: 0
+          nullable: true
+          type: integer
+        maxPacketLossRateUl:
+          maximum: 1000
+          minimum: 0
+          nullable: true
+          type: integer
+        defQosFlowIndication:
+          description: Indicates that the dynamic PCC rule shall always have its binding
+            with the QoS Flow associated with the default QoS rule
+          type: boolean
+      required:
+      - qosId
+      type: object
+    ConditionData:
+      example:
+        condId: condId
+        activationTime: 2000-01-23T04:56:07.000+00:00
+        deactivationTime: 2000-01-23T04:56:07.000+00:00
+      nullable: true
+      properties:
+        condId:
+          description: Uniquely identifies the condition data within a PDU session.
+          type: string
+        activationTime:
+          format: date-time
+          nullable: true
+          type: string
+        deactivationTime:
+          format: date-time
+          nullable: true
+          type: string
+      required:
+      - condId
+      type: object
+    TrafficControlData:
+      example:
+        trafficSteeringPolIdDl: trafficSteeringPolIdDl
+        redirectInfo:
+          redirectServerAddress: redirectServerAddress
+          redirectEnabled: true
+          redirectAddressType: null
+        trafficSteeringPolIdUl: trafficSteeringPolIdUl
+        upPathChgEvent:
+          dnaiChgType: null
+          notifCorreId: notifCorreId
+          notificationUri: notificationUri
+        tcId: tcId
+        flowStatus: null
+        routeToLocs:
+        - dnai: dnai
+          routeInfo:
+            ipv6Addr: 2001:db8:85a3::8a2e:370:7334
+            ipv4Addr: 198.51.100.1
+            portNumber: 0
+          routeProfId: routeProfId
+        - dnai: dnai
+          routeInfo:
+            ipv6Addr: 2001:db8:85a3::8a2e:370:7334
+            ipv4Addr: 198.51.100.1
+            portNumber: 0
+          routeProfId: routeProfId
+        muteNotif: true
+      nullable: true
+      properties:
+        tcId:
+          description: Univocally identifies the traffic control policy data within
+            a PDU session.
+          type: string
+        flowStatus:
+          $ref: '#/components/schemas/FlowStatus'
+        redirectInfo:
+          $ref: '#/components/schemas/RedirectInformation'
+        muteNotif:
+          description: Indicates whether applicat'on's start or stop notification
+            is to be muted.
+          type: boolean
+        trafficSteeringPolIdDl:
+          description: Reference to a pre-configured traffic steering policy for downlink
+            traffic at the SMF.
+          nullable: true
+          type: string
+        trafficSteeringPolIdUl:
+          description: Reference to a pre-configured traffic steering policy for uplink
+            traffic at the SMF.
+          nullable: true
+          type: string
+        routeToLocs:
+          description: A list of location which the traffic shall be routed to for
+            the AF request
+          items:
+            $ref: '#/components/schemas/RouteToLocation'
+          minItems: 1
+          type: array
+        upPathChgEvent:
+          $ref: '#/components/schemas/UpPathChgEvent'
+      required:
+      - tcId
+      type: object
+    ChargingData:
+      example:
+        sdfHandl: true
+        offline: true
+        appSvcProvId: appSvcProvId
+        afChargingIdentifier: 0
+        ratingGroup: 0
+        meteringMethod: null
+        sponsorId: sponsorId
+        online: true
+        serviceId: 0
+        afChargId: afChargId
+        chgId: chgId
+        reportingLevel: null
+      nullable: true
+      properties:
+        chgId:
+          description: Univocally identifies the charging control policy data within
+            a PDU session.
+          type: string
+        meteringMethod:
+          $ref: '#/components/schemas/MeteringMethod'
+        offline:
+          description: Indicates the offline charging is applicable to the PCC rule
+            when it is included and set to true.
+          type: boolean
+        online:
+          description: Indicates the online charging is applicable to the PCC rule
+            when it is included and set to true.
+          type: boolean
+        sdfHandl:
+          description: Indicates whether the service data flow is allowed to start
+            while the SMF is waiting for the response to the credit request.
+          type: boolean
+        ratingGroup:
+          format: int32
+          minimum: 0
+          type: integer
+        reportingLevel:
+          $ref: '#/components/schemas/ReportingLevel'
+        serviceId:
+          format: int32
+          minimum: 0
+          type: integer
+        sponsorId:
+          description: Indicates the sponsor identity.
+          type: string
+        appSvcProvId:
+          description: Indicates the application service provider identity.
+          type: string
+        afChargingIdentifier:
+          format: int32
+          minimum: 0
+          type: integer
+        afChargId:
+          type: string
+      required:
+      - chgId
+      type: object
+    UsageMonitoringData:
+      example:
+        nextVolThresholdDownlink: 0
+        nextTimeThreshold: 9
+        nextVolThreshold: 0
+        volumeThreshold: 0
+        monitoringTime: 2000-01-23T04:56:07.000+00:00
+        umId: umId
+        exUsagePccRuleIds:
+        - exUsagePccRuleIds
+        - exUsagePccRuleIds
+        timeThreshold: 9
+        inactivityTime: 6
+        volumeThresholdUplink: 0
+        volumeThresholdDownlink: 0
+        nextVolThresholdUplink: 0
+      nullable: true
+      properties:
+        umId:
+          description: Univocally identifies the usage monitoring policy data within
+            a PDU session.
+          type: string
+        volumeThreshold:
+          description: Unsigned integer identifying a volume in units of bytes with
+            "nullable=true" property.
+          format: int64
+          minimum: 0
+          nullable: true
+          type: integer
+        volumeThresholdUplink:
+          description: Unsigned integer identifying a volume in units of bytes with
+            "nullable=true" property.
+          format: int64
+          minimum: 0
+          nullable: true
+          type: integer
+        volumeThresholdDownlink:
+          description: Unsigned integer identifying a volume in units of bytes with
+            "nullable=true" property.
+          format: int64
+          minimum: 0
+          nullable: true
+          type: integer
+        timeThreshold:
+          nullable: true
+          type: integer
+        monitoringTime:
+          format: date-time
+          nullable: true
+          type: string
+        nextVolThreshold:
+          description: Unsigned integer identifying a volume in units of bytes with
+            "nullable=true" property.
+          format: int64
+          minimum: 0
+          nullable: true
+          type: integer
+        nextVolThresholdUplink:
+          description: Unsigned integer identifying a volume in units of bytes with
+            "nullable=true" property.
+          format: int64
+          minimum: 0
+          nullable: true
+          type: integer
+        nextVolThresholdDownlink:
+          description: Unsigned integer identifying a volume in units of bytes with
+            "nullable=true" property.
+          format: int64
+          minimum: 0
+          nullable: true
+          type: integer
+        nextTimeThreshold:
+          nullable: true
+          type: integer
+        inactivityTime:
+          nullable: true
+          type: integer
+        exUsagePccRuleIds:
+          description: Contains the PCC rule identifier(s) which corresponding service
+            data flow(s) shall be excluded from PDU Session usage monitoring. It is
+            only included in the UsageMonitoringData instance for session level usage
+            monitoring.
+          items:
+            type: string
+          minItems: 1
+          nullable: true
+          type: array
+      required:
+      - umId
+      type: object
+    RedirectInformation:
+      example:
+        redirectServerAddress: redirectServerAddress
+        redirectEnabled: true
+        redirectAddressType: null
+      properties:
+        redirectEnabled:
+          description: Indicates the redirect is enable.
+          type: boolean
+        redirectAddressType:
+          $ref: '#/components/schemas/RedirectAddressType'
+        redirectServerAddress:
+          description: "Indicates the address of the redirect server. If \"redirectAddressType\"\
+            \ attribute indicates the IPV4_ADDR, the encoding is the same as the Ipv4Addr\
+            \ data type defined in 3GPP TS 29.571.If \"redirectAddressType\" attribute\
+            \ indicates the IPV6_ADDR, the encoding is the same as the Ipv6Addr data\
+            \ type defined in 3GPP TS 29.571.If \"redirectAddressType\" attribute\
+            \ indicates the URL or SIP_URI, the encoding is the same as the Uri data\
+            \ type defined in 3GPP TS 29.571."
+          type: string
+      type: object
+    FlowInformation:
+      example:
+        flowLabel: flowLabel
+        packFiltId: packFiltId
+        flowDirection: null
+        packetFilterUsage: true
+        tosTrafficClass: tosTrafficClass
+        spi: spi
+        flowDescription: flowDescription
+        ethFlowDescription:
+          destMacAddr: destMacAddr
+          sourceMacAddr: sourceMacAddr
+          fDir: null
+          ethType: ethType
+          fDesc: fDesc
+          vlanTags:
+          - vlanTags
+          - vlanTags
+      properties:
+        flowDescription:
+          description: Defines a packet filter for an IP flow.
+          type: string
+        ethFlowDescription:
+          $ref: '#/components/schemas/EthFlowDescription'
+        packFiltId:
+          description: An identifier of packet filter.
+          type: string
+        packetFilterUsage:
+          description: The packet shall be sent to the UE.
+          type: boolean
+        tosTrafficClass:
+          description: Contains the Ipv4 Type-of-Service and mask field or the Ipv6
+            Traffic-Class field and mask field.
+          nullable: true
+          type: string
+        spi:
+          description: the security parameter index of the IPSec packet.
+          nullable: true
+          type: string
+        flowLabel:
+          description: the Ipv6 flow label header field.
+          nullable: true
+          type: string
+        flowDirection:
+          $ref: '#/components/schemas/FlowDirectionRm'
+      type: object
+    SmPolicyDeleteData:
+      example:
+        servingNetwork:
+          mnc: mnc
+          mcc: mcc
+        ueTimeZone: ueTimeZone
+        ranNasRelCauses:
+        - ngApCause:
+            value: 0
+            group: 0
+          "5gMmCause": 0
+          "5gSmCause": 0
+          epsCause: epsCause
+        - ngApCause:
+            value: 0
+            group: 0
+          "5gMmCause": 0
+          "5gSmCause": 0
+          epsCause: epsCause
+        accuUsageReports:
+        - volUsage: 0
+          nextVolUsageUplink: 0
+          nextTimeUsage: 3
+          nextVolUsageDownlink: 0
+          timeUsage: 5
+          refUmIds: refUmIds
+          nextVolUsage: 0
+          volUsageUplink: 0
+          volUsageDownlink: 0
+        - volUsage: 0
+          nextVolUsageUplink: 0
+          nextTimeUsage: 3
+          nextVolUsageDownlink: 0
+          timeUsage: 5
+          refUmIds: refUmIds
+          nextVolUsage: 0
+          volUsageUplink: 0
+          volUsageDownlink: 0
+        userLocationInfoTime: 2000-01-23T04:56:07.000+00:00
+        userLocationInfo:
+          eutraLocation:
+            geographicalInformation: geographicalInformation
+            globalNgenbId:
+              gNbId:
+                bitLength: 27
+                gNBValue: gNBValue
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              n3IwfId: n3IwfId
+              ngeNbId: ngeNbId
+            ageOfLocationInformation: 4803
+            tai:
+              tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            ueLocationTimestamp: 2000-01-23T04:56:07.000+00:00
+            geodeticInformation: geodeticInformation
+            ecgi:
+              eutraCellId: eutraCellId
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+          nrLocation:
+            geographicalInformation: geographicalInformation
+            globalGnbId:
+              gNbId:
+                bitLength: 27
+                gNBValue: gNBValue
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              n3IwfId: n3IwfId
+              ngeNbId: ngeNbId
+            ageOfLocationInformation: 19536
+            ncgi:
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              nrCellId: nrCellId
+            tai:
+              tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            ueLocationTimestamp: 2000-01-23T04:56:07.000+00:00
+            geodeticInformation: geodeticInformation
+          n3gaLocation:
+            ueIpv4Addr: 198.51.100.1
+            n3gppTai:
+              tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            ueIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+            n3IwfId: n3IwfId
+            portNumber: 0
+      properties:
+        userLocationInfo:
+          $ref: '#/components/schemas/UserLocation'
+        ueTimeZone:
+          type: string
+        servingNetwork:
+          $ref: '#/components/schemas/NetworkId'
+        userLocationInfoTime:
+          format: date-time
+          type: string
+        ranNasRelCauses:
+          description: Contains the RAN and/or NAS release cause.
+          items:
+            $ref: '#/components/schemas/RanNasRelCause'
+          minItems: 1
+          type: array
+        accuUsageReports:
+          description: Contains the usage report
+          items:
+            $ref: '#/components/schemas/AccuUsageReport'
+          minItems: 1
+          type: array
+      type: object
+    QosCharacteristics:
+      example:
+        priorityLevel: 88
+        maxDataBurstVol: 2776
+        packetErrorRate: packetErrorRate
+        "5qi": 90
+        resourceType: null
+        packetDelayBudget: 1
+        averagingWindow: 1181
+      properties:
+        "5qi":
+          maximum: 255
+          minimum: 0
+          type: integer
+        resourceType:
+          $ref: '#/components/schemas/QosResourceType'
+        priorityLevel:
+          maximum: 127
+          minimum: 1
+          type: integer
+        packetDelayBudget:
+          minimum: 1
+          type: integer
+        packetErrorRate:
+          pattern: "^([0-9]E-[0-9])$"
+          type: string
+        averagingWindow:
+          default: 2000
+          maximum: 4095
+          minimum: 1
+          type: integer
+        maxDataBurstVol:
+          maximum: 4095
+          minimum: 1
+          type: integer
+      required:
+      - 5qi
+      - packetDelayBudget
+      - packetErrorRate
+      - priorityLevel
+      - resourceType
+      type: object
+    ChargingInformation:
+      example:
+        secondaryChfAddress: secondaryChfAddress
+        primaryChfAddress: primaryChfAddress
+      properties:
+        primaryChfAddress:
+          type: string
+        secondaryChfAddress:
+          type: string
+      required:
+      - primaryChfAddress
+      - secondaryChfAddress
+      type: object
+    AccuUsageReport:
+      example:
+        volUsage: 0
+        nextVolUsageUplink: 0
+        nextTimeUsage: 3
+        nextVolUsageDownlink: 0
+        timeUsage: 5
+        refUmIds: refUmIds
+        nextVolUsage: 0
+        volUsageUplink: 0
+        volUsageDownlink: 0
+      properties:
+        refUmIds:
+          description: An id referencing UsageMonitoringData objects associated with
+            this usage report.
+          type: string
+        volUsage:
+          description: Unsigned integer identifying a volume in units of bytes.
+          format: int64
+          minimum: 0
+          type: integer
+        volUsageUplink:
+          description: Unsigned integer identifying a volume in units of bytes.
+          format: int64
+          minimum: 0
+          type: integer
+        volUsageDownlink:
+          description: Unsigned integer identifying a volume in units of bytes.
+          format: int64
+          minimum: 0
+          type: integer
+        timeUsage:
+          type: integer
+        nextVolUsage:
+          description: Unsigned integer identifying a volume in units of bytes.
+          format: int64
+          minimum: 0
+          type: integer
+        nextVolUsageUplink:
+          description: Unsigned integer identifying a volume in units of bytes.
+          format: int64
+          minimum: 0
+          type: integer
+        nextVolUsageDownlink:
+          description: Unsigned integer identifying a volume in units of bytes.
+          format: int64
+          minimum: 0
+          type: integer
+        nextTimeUsage:
+          type: integer
+      required:
+      - refUmIds
+      type: object
+    SmPolicyUpdateContextData:
+      example:
+        ueMac: ueMac
+        servNfId:
+          servNfInstId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          guami:
+            plmnId:
+              mnc: mnc
+              mcc: mcc
+            amfId: amfId
+          anGwAddr:
+            anGwIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+            anGwIpv4Addr: 198.51.100.1
+        relUeMac: relUeMac
+        appDetectionInfos:
+        - sdfDescriptions:
+          - flowLabel: flowLabel
+            packFiltId: packFiltId
+            flowDirection: null
+            packetFilterUsage: true
+            tosTrafficClass: tosTrafficClass
+            spi: spi
+            flowDescription: flowDescription
+            ethFlowDescription:
+              destMacAddr: destMacAddr
+              sourceMacAddr: sourceMacAddr
+              fDir: null
+              ethType: ethType
+              fDesc: fDesc
+              vlanTags:
+              - vlanTags
+              - vlanTags
+          - flowLabel: flowLabel
+            packFiltId: packFiltId
+            flowDirection: null
+            packetFilterUsage: true
+            tosTrafficClass: tosTrafficClass
+            spi: spi
+            flowDescription: flowDescription
+            ethFlowDescription:
+              destMacAddr: destMacAddr
+              sourceMacAddr: sourceMacAddr
+              fDir: null
+              ethType: ethType
+              fDesc: fDesc
+              vlanTags:
+              - vlanTags
+              - vlanTags
+          instanceId: instanceId
+          appId: appId
+        - sdfDescriptions:
+          - flowLabel: flowLabel
+            packFiltId: packFiltId
+            flowDirection: null
+            packetFilterUsage: true
+            tosTrafficClass: tosTrafficClass
+            spi: spi
+            flowDescription: flowDescription
+            ethFlowDescription:
+              destMacAddr: destMacAddr
+              sourceMacAddr: sourceMacAddr
+              fDir: null
+              ethType: ethType
+              fDesc: fDesc
+              vlanTags:
+              - vlanTags
+              - vlanTags
+          - flowLabel: flowLabel
+            packFiltId: packFiltId
+            flowDirection: null
+            packetFilterUsage: true
+            tosTrafficClass: tosTrafficClass
+            spi: spi
+            flowDescription: flowDescription
+            ethFlowDescription:
+              destMacAddr: destMacAddr
+              sourceMacAddr: sourceMacAddr
+              fDir: null
+              ethType: ethType
+              fDesc: fDesc
+              vlanTags:
+              - vlanTags
+              - vlanTags
+          instanceId: instanceId
+          appId: appId
+        repPraInfos:
+          key:
+            ecgiList:
+            - eutraCellId: eutraCellId
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            - eutraCellId: eutraCellId
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            globalRanNodeIdList:
+            - gNbId:
+                bitLength: 27
+                gNBValue: gNBValue
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              n3IwfId: n3IwfId
+              ngeNbId: ngeNbId
+            - gNbId:
+                bitLength: 27
+                gNBValue: gNBValue
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              n3IwfId: n3IwfId
+              ngeNbId: ngeNbId
+            presenceState: null
+            praId: praId
+            trackingAreaList:
+            - tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            - tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            ncgiList:
+            - plmnId:
+                mnc: mnc
+                mcc: mcc
+              nrCellId: nrCellId
+            - plmnId:
+                mnc: mnc
+                mcc: mcc
+              nrCellId: nrCellId
+        ipv4Address: 198.51.100.1
+        userLocationInfoTime: 2000-01-23T04:56:07.000+00:00
+        creditManageStatus: null
+        userLocationInfo:
+          eutraLocation:
+            geographicalInformation: geographicalInformation
+            globalNgenbId:
+              gNbId:
+                bitLength: 27
+                gNBValue: gNBValue
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              n3IwfId: n3IwfId
+              ngeNbId: ngeNbId
+            ageOfLocationInformation: 4803
+            tai:
+              tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            ueLocationTimestamp: 2000-01-23T04:56:07.000+00:00
+            geodeticInformation: geodeticInformation
+            ecgi:
+              eutraCellId: eutraCellId
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+          nrLocation:
+            geographicalInformation: geographicalInformation
+            globalGnbId:
+              gNbId:
+                bitLength: 27
+                gNBValue: gNBValue
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              n3IwfId: n3IwfId
+              ngeNbId: ngeNbId
+            ageOfLocationInformation: 19536
+            ncgi:
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+              nrCellId: nrCellId
+            tai:
+              tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            ueLocationTimestamp: 2000-01-23T04:56:07.000+00:00
+            geodeticInformation: geodeticInformation
+          n3gaLocation:
+            ueIpv4Addr: 198.51.100.1
+            n3gppTai:
+              tac: tac
+              plmnId:
+                mnc: mnc
+                mcc: mcc
+            ueIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+            n3IwfId: n3IwfId
+            portNumber: 0
+        subsDefQos:
+          priorityLevel: 89
+          "5qi": 58
+          arp:
+            priorityLevel: 9
+            preemptCap: null
+            preemptVuln: null
+        "3gppPsDataOffStatus": true
+        accessType: null
+        servingNetwork:
+          mnc: mnc
+          mcc: mcc
+        ueTimeZone: ueTimeZone
+        ipv6AddressPrefix: 2001:db8:abcd:12::0/64
+        subsSessAmbr:
+          uplink: uplink
+          downlink: downlink
+        ueInitResReq:
+          packFiltInfo:
+          - flowLabel: flowLabel
+            packFiltId: packFiltId
+            flowDirection: null
+            tosTrafficClass: tosTrafficClass
+            packFiltCont: packFiltCont
+            spi: spi
+          - flowLabel: flowLabel
+            packFiltId: packFiltId
+            flowDirection: null
+            tosTrafficClass: tosTrafficClass
+            packFiltCont: packFiltCont
+            spi: spi
+          ruleOp: null
+          pccRuleId: pccRuleId
+          reqQos:
+            gbrDl: gbrDl
+            gbrUl: gbrUl
+            "5qi": 174
+          precedence: 1
+        accNetChIds:
+        - accNetChaIdValue: 0
+          sessionChScope: true
+          refPccRuleIds:
+          - refPccRuleIds
+          - refPccRuleIds
+        - accNetChaIdValue: 0
+          sessionChScope: true
+          refPccRuleIds:
+          - refPccRuleIds
+          - refPccRuleIds
+        relIpv6AddressPrefix: 2001:db8:abcd:12::0/64
+        qncReports:
+        - notifType: null
+          contVer: 1
+          refPccRuleIds:
+          - refPccRuleIds
+          - refPccRuleIds
+        - notifType: null
+          contVer: 1
+          refPccRuleIds:
+          - refPccRuleIds
+          - refPccRuleIds
+        ipDomain: ipDomain
+        ratType: null
+        sessRuleReports:
+        - ruleIds:
+          - ruleIds
+          - ruleIds
+          sessRuleFailureCode: null
+          ruleStatus: null
+        - ruleIds:
+          - ruleIds
+          - ruleIds
+          sessRuleFailureCode: null
+          ruleStatus: null
+        refQosIndication: true
+        relIpv4Address: 198.51.100.1
+        traceReq:
+          eventList: eventList
+          collectionEntityIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+          collectionEntityIpv4Addr: 198.51.100.1
+          traceRef: traceRef
+          interfaceList: interfaceList
+          neTypeList: neTypeList
+          traceDepth: null
+        repPolicyCtrlReqTriggers:
+        - null
+        - null
+        numOfPackFilter: 0
+        qosFlowUsage: null
+        ruleReports:
+        - failureCode: null
+          ranNasRelCauses:
+          - ngApCause:
+              value: 0
+              group: 0
+            "5gMmCause": 0
+            "5gSmCause": 0
+            epsCause: epsCause
+          - ngApCause:
+              value: 0
+              group: 0
+            "5gMmCause": 0
+            "5gSmCause": 0
+            epsCause: epsCause
+          finUnitAct: null
+          contVers:
+          - null
+          - null
+          ruleStatus: null
+          pccRuleIds:
+          - pccRuleIds
+          - pccRuleIds
+        - failureCode: null
+          ranNasRelCauses:
+          - ngApCause:
+              value: 0
+              group: 0
+            "5gMmCause": 0
+            "5gSmCause": 0
+            epsCause: epsCause
+          - ngApCause:
+              value: 0
+              group: 0
+            "5gMmCause": 0
+            "5gSmCause": 0
+            epsCause: epsCause
+          finUnitAct: null
+          contVers:
+          - null
+          - null
+          ruleStatus: null
+          pccRuleIds:
+          - pccRuleIds
+          - pccRuleIds
+        accuUsageReports:
+        - volUsage: 0
+          nextVolUsageUplink: 0
+          nextTimeUsage: 3
+          nextVolUsageDownlink: 0
+          timeUsage: 5
+          refUmIds: refUmIds
+          nextVolUsage: 0
+          volUsageUplink: 0
+          volUsageDownlink: 0
+        - volUsage: 0
+          nextVolUsageUplink: 0
+          nextTimeUsage: 3
+          nextVolUsageDownlink: 0
+          timeUsage: 5
+          refUmIds: refUmIds
+          nextVolUsage: 0
+          volUsageUplink: 0
+          volUsageDownlink: 0
+      properties:
+        repPolicyCtrlReqTriggers:
+          description: The policy control reqeust trigges which are met.
+          items:
+            $ref: '#/components/schemas/PolicyControlRequestTrigger'
+          minItems: 1
+          type: array
+        accNetChIds:
+          description: Indicates the access network charging identifier for the PCC
+            rule(s) or whole PDU session.
+          items:
+            $ref: '#/components/schemas/AccNetChId'
+          minItems: 1
+          type: array
+        accessType:
+          $ref: '#/components/schemas/AccessType'
+        ratType:
+          $ref: '#/components/schemas/RatType'
+        servingNetwork:
+          $ref: '#/components/schemas/NetworkId'
+        userLocationInfo:
+          $ref: '#/components/schemas/UserLocation'
+        ueTimeZone:
+          type: string
+        relIpv4Address:
+          example: 198.51.100.1
+          pattern: "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$"
+          type: string
+        ipv4Address:
+          example: 198.51.100.1
+          pattern: "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$"
+          type: string
+        ipDomain:
+          description: Indicates the IPv4 address domain
+          type: string
+        ipv6AddressPrefix:
+          $ref: '#/components/schemas/Ipv6Prefix'
+        relIpv6AddressPrefix:
+          $ref: '#/components/schemas/Ipv6Prefix'
+        relUeMac:
+          pattern: "^([0-9a-fA-F]{2})((-[0-9a-fA-F]{2}){5})$"
+          type: string
+        ueMac:
+          pattern: "^([0-9a-fA-F]{2})((-[0-9a-fA-F]{2}){5})$"
+          type: string
+        subsSessAmbr:
+          $ref: '#/components/schemas/Ambr'
+        subsDefQos:
+          $ref: '#/components/schemas/SubscribedDefaultQos'
+        numOfPackFilter:
+          description: Contains the number of supported packet filter for signalled
+            QoS rules.
+          type: integer
+        accuUsageReports:
+          description: Contains the usage report
+          items:
+            $ref: '#/components/schemas/AccuUsageReport'
+          minItems: 1
+          type: array
+        "3gppPsDataOffStatus":
+          description: "If it is included and set to true, the 3GPP PS Data Off is\
+            \ activated by the UE."
+          type: boolean
+        appDetectionInfos:
+          description: Report the start/stop of the application traffic and detected
+            SDF descriptions if applicable.
+          items:
+            $ref: '#/components/schemas/AppDetectionInfo'
+          minItems: 1
+          type: array
+        ruleReports:
+          description: Used to report the PCC rule failure.
+          items:
+            $ref: '#/components/schemas/RuleReport'
+          minItems: 1
+          type: array
+        sessRuleReports:
+          description: Used to report the session rule failure.
+          items:
+            $ref: '#/components/schemas/SessionRuleReport'
+          minItems: 1
+          type: array
+        qncReports:
+          description: QoS Notification Control information.
+          items:
+            $ref: '#/components/schemas/QosNotificationControlInfo'
+          minItems: 1
+          type: array
+        userLocationInfoTime:
+          format: date-time
+          type: string
+        repPraInfos:
+          additionalProperties:
+            $ref: '#/components/schemas/PresenceInfo'
+          description: Reports the changes of presence reporting area.
+          minProperties: 1
+          type: object
+        ueInitResReq:
+          $ref: '#/components/schemas/UeInitiatedResourceRequest'
+        refQosIndication:
+          description: "If it is included and set to true, the reflective QoS is supported\
+            \ by the UE. If it is included and set to false, the reflective QoS is\
+            \ revoked by the UE."
+          type: boolean
+        qosFlowUsage:
+          $ref: '#/components/schemas/QosFlowUsage'
+        creditManageStatus:
+          $ref: '#/components/schemas/CreditManagementStatus'
+        servNfId:
+          $ref: '#/components/schemas/ServingNfIdentity'
+        traceReq:
+          $ref: '#/components/schemas/TraceData'
+      type: object
+    UpPathChgEvent:
+      example:
+        dnaiChgType: null
+        notifCorreId: notifCorreId
+        notificationUri: notificationUri
+      nullable: true
+      properties:
+        notificationUri:
+          type: string
+        notifCorreId:
+          description: It is used to set the value of Notification Correlation ID
+            in the notification sent by the SMF.
+          type: string
+        dnaiChgType:
+          $ref: '#/components/schemas/DnaiChangeType'
+      required:
+      - dnaiChgType
+      - notifCorreId
+      - notificationUri
+      type: object
+    TerminationNotification:
+      example:
+        cause: null
+        resourceUri: resourceUri
+      properties:
+        resourceUri:
+          type: string
+        cause:
+          $ref: '#/components/schemas/PolicyAssociationReleaseCause'
+      required:
+      - cause
+      - resourceUri
+      type: object
+    AppDetectionInfo:
+      example:
+        sdfDescriptions:
+        - flowLabel: flowLabel
+          packFiltId: packFiltId
+          flowDirection: null
+          packetFilterUsage: true
+          tosTrafficClass: tosTrafficClass
+          spi: spi
+          flowDescription: flowDescription
+          ethFlowDescription:
+            destMacAddr: destMacAddr
+            sourceMacAddr: sourceMacAddr
+            fDir: null
+            ethType: ethType
+            fDesc: fDesc
+            vlanTags:
+            - vlanTags
+            - vlanTags
+        - flowLabel: flowLabel
+          packFiltId: packFiltId
+          flowDirection: null
+          packetFilterUsage: true
+          tosTrafficClass: tosTrafficClass
+          spi: spi
+          flowDescription: flowDescription
+          ethFlowDescription:
+            destMacAddr: destMacAddr
+            sourceMacAddr: sourceMacAddr
+            fDir: null
+            ethType: ethType
+            fDesc: fDesc
+            vlanTags:
+            - vlanTags
+            - vlanTags
+        instanceId: instanceId
+        appId: appId
+      properties:
+        appId:
+          description: A reference to the application detection filter configured
+            at the UPF
+          type: string
+        instanceId:
+          description: "Identifier sent by the SMF in order to allow correlation of\
+            \ application Start and Stop events to the specific service data flow\
+            \ description, if service data flow descriptions are deducible."
+          type: string
+        sdfDescriptions:
+          description: Contains the detected service data flow descriptions if they
+            are deducible.
+          items:
+            $ref: '#/components/schemas/FlowInformation'
+          minItems: 1
+          type: array
+      required:
+      - appId
+      type: object
+    AccNetChId:
+      example:
+        accNetChaIdValue: 0
+        sessionChScope: true
+        refPccRuleIds:
+        - refPccRuleIds
+        - refPccRuleIds
+      properties:
+        accNetChaIdValue:
+          format: int32
+          minimum: 0
+          type: integer
+        refPccRuleIds:
+          description: Contains the identifier of the PCC rule(s) associated to the
+            provided Access Network Charging Identifier.
+          items:
+            type: string
+          minItems: 1
+          type: array
+        sessionChScope:
+          description: "When it is included and set to true, indicates the Access\
+            \ Network Charging Identifier applies to the whole PDU Session"
+          type: boolean
+      required:
+      - accNetChaIdValue
+      type: object
+    AccNetChargingAddress:
+      anyOf: []
+      description: Describes the network entity within the access network performing
+        charging
+      example:
+        anChargIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+        anChargIpv4Addr: 198.51.100.1
+      nullable: true
+      properties:
+        anChargIpv4Addr:
+          example: 198.51.100.1
+          pattern: "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$"
+          type: string
+        anChargIpv6Addr:
+          $ref: '#/components/schemas/Ipv6Addr'
+      type: object
+    RequestedRuleData:
+      example:
+        reqData:
+        - null
+        - null
+        refPccRuleIds:
+        - refPccRuleIds
+        - refPccRuleIds
+      properties:
+        refPccRuleIds:
+          description: An array of PCC rule id references to the PCC rules associated
+            with the control data.
+          items:
+            type: string
+          minItems: 1
+          type: array
+        reqData:
+          description: Array of requested rule data type elements indicating what
+            type of rule data is requested for the corresponding referenced PCC rules.
+          items:
+            $ref: '#/components/schemas/RequestedRuleDataType'
+          minItems: 1
+          type: array
+      required:
+      - refPccRuleIds
+      - reqData
+      type: object
+    RequestedUsageData:
+      example:
+        allUmIds: true
+        refUmIds:
+        - refUmIds
+        - refUmIds
+      properties:
+        refUmIds:
+          description: An array of usage monitoring data id references to the usage
+            monitoring data instances for which the PCF is requesting a usage report.
+            This attribute shall only be provided when allUmIds is not set to true.
+          items:
+            type: string
+          minItems: 1
+          type: array
+        allUmIds:
+          description: "This boolean indicates whether requested usage data applies\
+            \ to all usage monitoring data instances. When it's not included, it means\
+            \ requested usage data shall only apply to the usage monitoring data instances\
+            \ referenced by the refUmIds attribute."
+          type: boolean
+      type: object
+    UeCampingRep:
+      properties:
+        accessType:
+          $ref: '#/components/schemas/AccessType'
+        ratType:
+          $ref: '#/components/schemas/RatType'
+        servNfId:
+          $ref: '#/components/schemas/ServingNfIdentity'
+        servingNetwork:
+          $ref: '#/components/schemas/NetworkId'
+        userLocationInfo:
+          $ref: '#/components/schemas/UserLocation'
+        ueTimeZone:
+          type: string
+        netLocAccSupp:
+          $ref: '#/components/schemas/NetLocAccessSupport'
+      type: object
+    RuleReport:
+      example:
+        failureCode: null
+        ranNasRelCauses:
+        - ngApCause:
+            value: 0
+            group: 0
+          "5gMmCause": 0
+          "5gSmCause": 0
+          epsCause: epsCause
+        - ngApCause:
+            value: 0
+            group: 0
+          "5gMmCause": 0
+          "5gSmCause": 0
+          epsCause: epsCause
+        finUnitAct: null
+        contVers:
+        - null
+        - null
+        ruleStatus: null
+        pccRuleIds:
+        - pccRuleIds
+        - pccRuleIds
+      properties:
+        pccRuleIds:
+          description: Contains the identifier of the affected PCC rule(s).
+          items:
+            type: string
+          minItems: 1
+          type: array
+        ruleStatus:
+          $ref: '#/components/schemas/RuleStatus'
+        contVers:
+          description: Indicates the version of a PCC rule.
+          items:
+            $ref: '#/components/schemas/ContentVersion'
+          minItems: 1
+          type: array
+        failureCode:
+          $ref: '#/components/schemas/FailureCode'
+        finUnitAct:
+          $ref: '#/components/schemas/FinalUnitAction'
+        ranNasRelCauses:
+          description: indicates the RAN or NAS release cause code information.
+          items:
+            $ref: '#/components/schemas/RanNasRelCause'
+          minItems: 1
+          type: array
+      required:
+      - pccRuleIds
+      - ruleStatus
+      type: object
+    RanNasRelCause:
+      example:
+        ngApCause:
+          value: 0
+          group: 0
+        "5gMmCause": 0
+        "5gSmCause": 0
+        epsCause: epsCause
+      properties:
+        ngApCause:
+          $ref: '#/components/schemas/NgApCause'
+        "5gMmCause":
+          minimum: 0
+          type: integer
+        "5gSmCause":
+          minimum: 0
+          type: integer
+        epsCause:
+          description: Defines the EPS RAN/NAS release cause.
+          type: string
+      type: object
+    UeInitiatedResourceRequest:
+      example:
+        packFiltInfo:
+        - flowLabel: flowLabel
+          packFiltId: packFiltId
+          flowDirection: null
+          tosTrafficClass: tosTrafficClass
+          packFiltCont: packFiltCont
+          spi: spi
+        - flowLabel: flowLabel
+          packFiltId: packFiltId
+          flowDirection: null
+          tosTrafficClass: tosTrafficClass
+          packFiltCont: packFiltCont
+          spi: spi
+        ruleOp: null
+        pccRuleId: pccRuleId
+        reqQos:
+          gbrDl: gbrDl
+          gbrUl: gbrUl
+          "5qi": 174
+        precedence: 1
+      properties:
+        pccRuleId:
+          type: string
+        ruleOp:
+          $ref: '#/components/schemas/RuleOperation'
+        precedence:
+          type: integer
+        packFiltInfo:
+          items:
+            $ref: '#/components/schemas/PacketFilterInfo'
+          minItems: 1
+          type: array
+        reqQos:
+          $ref: '#/components/schemas/RequestedQos'
+      required:
+      - packFiltInfo
+      - ruleOp
+      type: object
+    PacketFilterInfo:
+      example:
+        flowLabel: flowLabel
+        packFiltId: packFiltId
+        flowDirection: null
+        tosTrafficClass: tosTrafficClass
+        packFiltCont: packFiltCont
+        spi: spi
+      properties:
+        packFiltId:
+          description: An identifier of packet filter.
+          type: string
+        packFiltCont:
+          description: Defines a packet filter for an IP flow.
+          type: string
+        tosTrafficClass:
+          description: Contains the Ipv4 Type-of-Service and mask field or the Ipv6
+            Traffic-Class field and mask field.
+          type: string
+        spi:
+          description: The security parameter index of the IPSec packet.
+          type: string
+        flowLabel:
+          description: The Ipv6 flow label header field.
+          type: string
+        flowDirection:
+          $ref: '#/components/schemas/FlowDirection'
+      type: object
+    RequestedQos:
+      example:
+        gbrDl: gbrDl
+        gbrUl: gbrUl
+        "5qi": 174
+      properties:
+        "5qi":
+          maximum: 255
+          minimum: 0
+          type: integer
+        gbrUl:
+          pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+          type: string
+        gbrDl:
+          pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+          type: string
+      required:
+      - 5qi
+      type: object
+    QosNotificationControlInfo:
+      example:
+        notifType: null
+        contVer: 1
+        refPccRuleIds:
+        - refPccRuleIds
+        - refPccRuleIds
+      properties:
+        refPccRuleIds:
+          description: An array of PCC rule id references to the PCC rules associated
+            with the QoS notification control info.
+          items:
+            type: string
+          minItems: 1
+          type: array
+        notifType:
+          $ref: '#/components/schemas/QosNotifType'
+        contVer:
+          description: Represents the content version of some content.
+          type: integer
+      required:
+      - notifType
+      - refPccRuleIds
+      type: object
+    PartialSuccessReport:
+      properties:
+        failureCause:
+          $ref: '#/components/schemas/FailureCause'
+        ruleReports:
+          description: Information about the PCC rules provisioned by the PCF not
+            successfully installed/activated.
+          items:
+            $ref: '#/components/schemas/RuleReport'
+          minItems: 1
+          type: array
+        sessRuleReports:
+          description: Information about the session rules provisioned by the PCF
+            not successfully installed.
+          items:
+            $ref: '#/components/schemas/SessionRuleReport'
+          minItems: 1
+          type: array
+        ueCampingRep:
+          $ref: '#/components/schemas/UeCampingRep'
+      required:
+      - failureCause
+      type: object
+    AuthorizedDefaultQos:
+      example:
+        priorityLevel: 19
+        maxDataBurstVol: 2308
+        gbrDl: gbrDl
+        gbrUl: gbrUl
+        maxbrDl: maxbrDl
+        "5qi": 20
+        maxbrUl: maxbrUl
+        arp:
+          priorityLevel: 9
+          preemptCap: null
+          preemptVuln: null
+        averWindow: 2441
+      properties:
+        "5qi":
+          maximum: 255
+          minimum: 0
+          type: integer
+        arp:
+          $ref: '#/components/schemas/Arp'
+        priorityLevel:
+          maximum: 127
+          minimum: 1
+          nullable: true
+          type: integer
+        averWindow:
+          default: 2000
+          maximum: 4095
+          minimum: 1
+          nullable: true
+          type: integer
+        maxDataBurstVol:
+          maximum: 4095
+          minimum: 1
+          nullable: true
+          type: integer
+        maxbrUl:
+          nullable: true
+          pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+          type: string
+        maxbrDl:
+          nullable: true
+          pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+          type: string
+        gbrUl:
+          nullable: true
+          pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+          type: string
+        gbrDl:
+          nullable: true
+          pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+          type: string
+      type: object
+    ErrorReport:
+      properties:
+        error:
+          $ref: '#/components/schemas/ProblemDetails'
+        ruleReports:
+          description: Used to report the PCC rule failure.
+          items:
+            $ref: '#/components/schemas/RuleReport'
+          minItems: 1
+          type: array
+        sessRuleReports:
+          description: Used to report the session rule failure.
+          items:
+            $ref: '#/components/schemas/SessionRuleReport'
+          minItems: 1
+          type: array
+      type: object
+    SessionRuleReport:
+      example:
+        ruleIds:
+        - ruleIds
+        - ruleIds
+        sessRuleFailureCode: null
+        ruleStatus: null
+      properties:
+        ruleIds:
+          description: Contains the identifier of the affected session rule(s).
+          items:
+            type: string
+          minItems: 1
+          type: array
+        ruleStatus:
+          $ref: '#/components/schemas/RuleStatus'
+        sessRuleFailureCode:
+          $ref: '#/components/schemas/SessionRuleFailureCode'
+      required:
+      - ruleIds
+      - ruleStatus
+      type: object
+    ServingNfIdentity:
+      example:
+        servNfInstId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        guami:
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+          amfId: amfId
+        anGwAddr:
+          anGwIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+          anGwIpv4Addr: 198.51.100.1
+      properties:
+        servNfInstId:
+          format: uuid
+          type: string
+        guami:
+          $ref: '#/components/schemas/Guami'
+        anGwAddr:
+          $ref: '#/components/schemas/AnGwAddress'
+      type: object
+    "5GSmCause":
+      minimum: 0
+      type: integer
+    EpsRanNasRelCause:
+      description: Defines the EPS RAN/NAS release cause.
+      type: string
+    PacketFilterContent:
+      description: Defines a packet filter for an IP flow.
+      type: string
+    FlowDescription:
+      description: Defines a packet filter for an IP flow.
+      type: string
+    FlowDirection:
+      anyOf:
+      - enum:
+        - DOWNLINK
+        - UPLINK
+        - BIDIRECTIONAL
+        - UNSPECIFIED
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - DOWNLINK: The corresponding filter applies for traffic to the UE. - UPLINK: The corresponding filter applies for traffic from the UE. - BIDIRECTIONAL: The corresponding filter applies for traffic both to and from the UE. - UNSPECIFIED: The corresponding filter applies for traffic to the UE (downlink), but has no specific direction declared. The service data flow detection shall apply the filter for uplink traffic as if the filter was bidirectional. The PCF shall not use the value UNSPECIFIED in filters created by the network in NW-initiated procedures. The PCF shall only include the value UNSPECIFIED in filters in UE-initiated procedures if the same value is received from the SMF.
+    FlowDirectionRm:
+      anyOf:
+      - enum:
+        - DOWNLINK
+        - UPLINK
+        - BIDIRECTIONAL
+        - UNSPECIFIED
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - DOWNLINK: The corresponding filter applies for traffic to the UE. - UPLINK: The corresponding filter applies for traffic from the UE. - BIDIRECTIONAL: The corresponding filter applies for traffic both to and from the UE. - UNSPECIFIED: The corresponding filter applies for traffic to the UE (downlink), but has no specific direction declared. The service data flow detection shall apply the filter for uplink traffic as if the filter was bidirectional. The PCF shall not use the value UNSPECIFIED in filters created by the network in NW-initiated procedures. The PCF shall only include the value UNSPECIFIED in filters in UE-initiated procedures if the same value is received from the SMF.
+      nullable: true
+    ReportingLevel:
+      anyOf:
+      - enum:
+        - SER_ID_LEVEL
+        - RAT_GR_LEVEL
+        - SPON_CON_LEVEL
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - SER_ID_LEVEL: Indicates that the usage shall be reported on service id and rating group combination level. - RAT_GR_LEVEL: Indicates that the usage shall be reported on rating group level. - SPON_CON_LEVEL: Indicates that the usage shall be reported on sponsor identity and rating group combination level.
+      nullable: true
+    MeteringMethod:
+      anyOf:
+      - enum:
+        - DURATION
+        - VOLUME
+        - DURATION_VOLUME
+        - EVENT
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - DURATION: Indicates that the duration of the service data flow traffic shall be metered. - VOLUME: Indicates that volume of the service data flow traffic shall be metered. - DURATION_VOLUME: Indicates that the duration and the volume of the service data flow traffic shall be metered. - EVENT: Indicates that events of the service data flow traffic shall be metered.
+      nullable: true
+    PolicyControlRequestTrigger:
+      anyOf:
+      - enum:
+        - PLMN_CH
+        - RES_MO_RE
+        - AC_TY_CH
+        - UE_IP_CH
+        - UE_MAC_CH
+        - AN_CH_COR
+        - US_RE
+        - APP_STA
+        - APP_STO
+        - AN_INFO
+        - CM_SES_FAIL
+        - PS_DA_OFF
+        - DEF_QOS_CH
+        - SE_AMBR_CH
+        - QOS_NOTIF
+        - NO_CREDIT
+        - PRA_CH
+        - SAREA_CH
+        - SCNN_CH
+        - RE_TIMEOUT
+        - RES_RELEASE
+        - SUCC_RES_ALLO
+        - RAT_TY_CH
+        - REF_QOS_IND_CH
+        - NUM_OF_PACKET_FILTER
+        - UE_STATUS_RESUME
+        - UE_TZ_CH
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - PLMN_CH: PLMN Change - RES_MO_RE: A request for resource modification has been received by the SMF. The SMF always reports to the PCF. - AC_TY_CH: Access Type Change - UE_IP_CH: UE IP address change. The SMF always reports to the PCF. - UE_MAC_CH: A new UE MAC address is detected or a used UE MAC address is inactive for a specific period - AN_CH_COR: Access Network Charging Correlation Information - US_RE: The PDU Session or the Monitoring key specific resources consumed by a UE either reached the threshold or needs to be reported for other reasons. - APP_STA: The start of application traffic has been detected. - APP_STO: The stop of application traffic has been detected. - AN_INFO: Access Network Information report - CM_SES_FAIL: Credit management session failure - PS_DA_OFF: The SMF reports when the 3GPP PS Data Off status changes. The SMF always reports to the PCF. - DEF_QOS_CH: Default QoS Change. The SMF always reports to the PCF. - SE_AMBR_CH: Session AMBR Change. The SMF always reports to the PCF. - QOS_NOTIF: The SMF notify the PCF when receiving notification from RAN that QoS targets of the QoS Flow cannot be guranteed or gurateed again. - NO_CREDIT: Out of credit - PRA_CH: Change of UE presence in Presence Reporting Area - SAREA_CH: Location Change with respect to the Serving Area - SCNN_CH: Location Change with respect to the Serving CN node - RE_TIMEOUT: Indicates the SMF generated the request because there has been a PCC revalidation timeout - RES_RELEASE: Indicate that the SMF can inform the PCF of the outcome of the release of resources for those rules that require so. - SUCC_RES_ALLO: Indicates that the requested rule data is the successful resource allocation. - RAT_TY_CH: RAT Type Change. - REF_QOS_IND_CH: Reflective QoS indication Change - NUM_OF_PACKET_FILTER: Indicates that the SMF shall report the number of supported packet filter for signalled QoS rules - UE_STATUS_RESUME: Indicates that the UE’s status is resumed. - UE_TZ_CH: UE Time Zone Change
+    RequestedRuleDataType:
+      anyOf:
+      - enum:
+        - CH_ID
+        - MS_TIME_ZONE
+        - USER_LOC_INFO
+        - RES_RELEASE
+        - SUCC_RES_ALLO
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - CH_ID: Indicates that the requested rule data is the charging identifier.  - MS_TIME_ZONE: Indicates that the requested access network info type is the UE's timezone. - USER_LOC_INFO: Indicates that the requested access network info type is the UE's location. - RES_RELEASE: Indicates that the requested rule data is the result of the release of resource. - SUCC_RES_ALLO: Indicates that the requested rule data is the successful resource allocation.
+    RuleStatus:
+      anyOf:
+      - enum:
+        - ACTIVE
+        - INACTIVE
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - ACTIVE: Indicates that the PCC rule(s) are successfully installed (for those provisioned from PCF) or activated (for those pre-defined in SMF), or the session rule(s) are successfully installed  - INACTIVE: Indicates that the PCC rule(s) are removed (for those provisioned from PCF) or inactive (for those pre-defined in SMF) or the session rule(s) are removed.
+    FailureCode:
+      anyOf:
+      - enum:
+        - UNK_RULE_ID
+        - RA_GR_ERR
+        - SER_ID_ERR
+        - NF_MAL
+        - RES_LIM
+        - MAX_NR_QoS_FLOW
+        - MISS_FLOW_INFO
+        - RES_ALLO_FAIL
+        - UNSUCC_QOS_VAL
+        - INCOR_FLOW_INFO
+        - PS_TO_CS_HAN
+        - APP_ID_ERR
+        - NO_QOS_FLOW_BOUND
+        - FILTER_RES
+        - MISS_REDI_SER_ADDR
+        - CM_END_USER_SER_DENIED
+        - CM_CREDIT_CON_NOT_APP
+        - CM_AUTH_REJ
+        - CM_USER_UNK
+        - CM_RAT_FAILED
+        - UE_STA_SUSP
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are
+          - UNK_RULE_ID: Indicates that the pre-provisioned PCC rule could not be successfully activated because the PCC rule identifier is unknown to the SMF.
+          - RA_GR_ERR: Indicate that the PCC rule could not be successfully installed or enforced because the Rating Group specified within the Charging Data policy decision which the PCC rule refers to is unknown or, invalid.
+          - SER_ID_ERR: Indicate that the PCC rule could not be successfully installed or enforced because the Service Identifier specified within the Charging Data policy decision which the PCC rule refers to is invalid, unknown, or not applicable to the service being charged.
+          - NF_MAL: Indicate that the PCC rule could not be successfully installed (for those provisioned from the PCF) or activated (for those pre-defined in SMF) or enforced (for those already successfully installed) due to SMF/UPF malfunction.
+          - RES_LIM: Indicate that the PCC rule could not be successfully installed (for those provisioned from PCF) or activated (for those pre-defined in SMF) or enforced (for those already successfully installed) due to a limitation of resources at the SMF/UPF.
+          - MAX_NR_QoS_FLOW: Indicate that the PCC rule could not be successfully installed (for those provisioned from PCF) or activated (for those pre-defined in SMF) or enforced (for those already successfully installed) due to the fact that the maximum number of QoS flows has been reached for the PDU session.
+          - MISS_FLOW_INFO: Indicate that the PCC rule could not be successfully installed or enforced because neither the "flowInfos" attribute nor the "appId" attribute is specified within the PccRule data structure by the PCF during the first install request of the PCC rule.
+          - RES_ALLO_FAIL: Indicate that the PCC rule could not be successfully installed or maintained since the QoS flow establishment/modification failed, or the QoS flow was released.
+          - UNSUCC_QOS_VAL: indicate that the QoS validation has failed or when Guaranteed Bandwidth > Max-Requested-Bandwidth.
+          - INCOR_FLOW_INFO: Indicate that the PCC rule could not be successfully installed or modified at the SMF because the provided flow information is not supported by the network (e.g. the provided IP address(es) or Ipv6 prefix(es) do not correspond to an IP version applicable for the PDU session).
+          - PS_TO_CS_HAN: Indicate that the PCC rule could not be maintained because of PS to CS handover.
+          - APP_ID_ERR: Indicate that the rule could not be successfully installed or enforced because the Application Identifier is invalid, unknown, or not applicable to the application required for detection.
+          - NO_QOS_FLOW_BOUND: Indicate that there is no QoS flow which the SMF can bind the PCC rule(s) to.
+          - FILTER_RES: Indicate that the Flow Information within the "flowInfos" attribute cannot be handled by the SMF because any of the restrictions defined in subclause 5.4.2 of 3GPP TS 29.212 was not met.
+          - MISS_REDI_SER_ADDR: Indicate that the PCC rule could not be successfully installed or enforced at the SMF because there is no valid Redirect Server Address within the Traffic Control Data policy decision which the PCC rule refers to provided by the PCF and no preconfigured redirection address for this PCC rule at the SMF.
+          - CM_END_USER_SER_DENIED: Indicate that the charging system denied the service request due to service restrictions (e.g. terminate rating group) or limitations related to the end-user, for example the end-user's account could not cover the requested service.
+          - CM_CREDIT_CON_NOT_APP: Indicate that the charging system determined that the service can be granted to the end user but no further credit control is needed for the service (e.g. service is free of charge or is treated for offline charging).
+          - CM_AUTH_REJ: Indicate that the charging system denied the service request in order to terminate the service for which credit is requested.
+          - CM_USER_UNK: Indicate that the specified end user could not be found in the charging system.
+          - CM_RAT_FAILED: Indicate that the charging system cannot rate the service request due to insufficient rating input, incorrect AVP combination or due to an attribute or an attribute value that is not recognized or supported in the rating.
+          - UE_STA_SUSP: Indicates that the UE is in suspend state.
+    AfSigProtocol:
+      anyOf:
+      - enum:
+        - NO_INFORMATION
+        - SIP
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - NO_INFORMATION: Indicate that no information about the AF signalling protocol is being provided.  - SIP: Indicate that the signalling protocol is Session Initiation Protocol.
+      nullable: true
+    RuleOperation:
+      anyOf:
+      - enum:
+        - CREATE_PCC_RULE
+        - DELETE_PCC_RULE
+        - MODIFY_PCC_RULE_AND_ADD_PACKET_FILTERS
+        - MODIFY_ PCC_RULE_AND_REPLACE_PACKET_FILTERS
+        - MODIFY_ PCC_RULE_AND_DELETE_PACKET_FILTERS
+        - MODIFY_PCC_RULE_WITHOUT_MODIFY_PACKET_FILTERS
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - CREATE_PCC_RULE: Indicates to create a new PCC rule to reserve the resource requested by the UE.  - DELETE_PCC_RULE: Indicates to delete a PCC rule corresponding to reserve the resource requested by the UE.. - MODIFY_PCC_RULE_AND_ADD_PACKET_FILTERS: Indicates to modify the PCC rule by adding new packet filter(s). - MODIFY_ PCC_RULE_AND_REPLACE_PACKET_FILTERS: Indicates to modify the PCC rule by replacing the existing packet filter(s). - MODIFY_ PCC_RULE_AND_DELETE_PACKET_FILTERS: Indicates to modify the PCC rule by deleting the existing packet filter(s). - MODIFY_PCC_RULE_WITHOUT_MODIFY_PACKET_FILTERS: Indicates to modify the PCC rule by modifying the QoS of the PCC rule.
+    RedirectAddressType:
+      anyOf:
+      - enum:
+        - IPV4_ADDR
+        - IPV6_ADDR
+        - URL
+        - SIP_URI
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - IPV4_ADDR: Indicates that the address type is in the form of "dotted-decimal" IPv4 address. - IPV6_ADDR: Indicates that the address type is in the form of IPv6 address. - URL: Indicates that the address type is in the form of Uniform Resource Locator. - SIP_URI: Indicates that the address type is in the form of SIP Uniform Resource Identifier.
+    QosFlowUsage:
+      anyOf:
+      - enum:
+        - GENERAL
+        - IMS_SIG
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - GENERAL: Indicate no specific QoS flow usage information is available.  - IMS_SIG: Indicate that the QoS flow is used for IMS signalling only.
+    FailureCause:
+      anyOf:
+      - enum:
+        - PCC_RULE_EVENT
+        - PCC_QOS_FLOW_EVENT
+        - RULE_PERMANENT_ERROR
+        - RULE_TEMPORARY_ERROR
+        type: string
+      - type: string
+    CreditManagementStatus:
+      anyOf:
+      - enum:
+        - END_USER_SER_DENIED
+        - CREDIT_CTRL_NOT_APP
+        - AUTH_REJECTED
+        - USER_UNKNOWN
+        - RATING_FAILED
+        type: string
+      - type: string
+    SessionRuleFailureCode:
+      anyOf:
+      - enum:
+        - NF_MAL
+        - RES_LIM
+        - UNSUCC_QOS_VAL
+        - UE_STA_SUSP
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are
+          - NF_MAL: Indicate that the PCC rule could not be successfully installed (for those provisioned from the PCF) or activated (for those pre-defined in SMF) or enforced (for those already successfully installed) due to SMF/UPF malfunction.
+          - RES_LIM: Indicate that the PCC rule could not be successfully installed (for those provisioned from PCF) or activated (for those pre-defined in SMF) or enforced (for those already successfully installed) due to a limitation of resources at the SMF/UPF.
+          - UNSUCC_QOS_VAL: indicate that the QoS validation has failed.
+          - UE_STA_SUSP: Indicates that the UE is in suspend state.
+    NetLocAccessSupport:
+      anyOf:
+      - enum:
+        - ANR_NOT_SUPPORTED
+        - TZR_NOT_SUPPORTED
+        - LOC_NOT_SUPPORTED
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - ANR_NOT_SUPPORTED: Indicates that the access network does not support the report of access network information. - TZR_NOT_SUPPORTED: Indicates that the access network does not support the report of UE time zone. - LOC_NOT_SUPPORTED: Indicates that the access network does not support the report of UE Location (or PLMN Id).
+    ProblemDetails:
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        cause:
+          type: string
+        invalidParams:
+          items:
+            $ref: '#/components/schemas/InvalidParam'
+          minItems: 1
+          type: array
+        supportedFeatures:
+          pattern: "^[A-Fa-f0-9]*$"
+          type: string
+      type: object
+    Uri:
+      type: string
+    InvalidParam:
+      properties:
+        param:
+          type: string
+        reason:
+          type: string
+      required:
+      - param
+      type: object
+    SupportedFeatures:
+      pattern: "^[A-Fa-f0-9]*$"
+      type: string
+    Gpsi:
+      pattern: "^(msisdn-[0-9]{5,15}|extid-[^@]+@[^@]+|.+)$"
+      type: string
+    Supi:
+      pattern: "^(imsi-[0-9]{5,15}|nai-.+|.+)$"
+      type: string
+    GroupId:
+      pattern: "^[A-Fa-f0-9]{8}-[0-9]{3}-[0-9]{2,3}-([A-Fa-f0-9][A-Fa-f0-9]){1,10}$"
+      type: string
+    PduSessionId:
+      maximum: 255
+      minimum: 0
+      type: integer
+    PduSessionType:
+      anyOf:
+      - enum:
+        - IPV4
+        - IPV6
+        - IPV4V6
+        - UNSTRUCTURED
+        - ETHERNET
+        type: string
+      - type: string
+    Dnn:
+      type: string
+    AccessType:
+      enum:
+      - 3GPP_ACCESS
+      - NON_3GPP_ACCESS
+      type: string
+    RatType:
+      anyOf:
+      - enum:
+        - NR
+        - EUTRA
+        - WLAN
+        - VIRTUAL
+        type: string
+      - type: string
+    NetworkId:
+      example:
+        mnc: mnc
+        mcc: mcc
+      properties:
+        mnc:
+          pattern: "^\\d{2,3}$"
+          type: string
+        mcc:
+          pattern: "^\\d{3}$"
+          type: string
+      type: object
+    Mnc:
+      pattern: "^\\d{2,3}$"
+      type: string
+    Mcc:
+      pattern: "^\\d{3}$"
+      type: string
+    UserLocation:
+      example:
+        eutraLocation:
+          geographicalInformation: geographicalInformation
+          globalNgenbId:
+            gNbId:
+              bitLength: 27
+              gNBValue: gNBValue
+            plmnId:
+              mnc: mnc
+              mcc: mcc
+            n3IwfId: n3IwfId
+            ngeNbId: ngeNbId
+          ageOfLocationInformation: 4803
+          tai:
+            tac: tac
+            plmnId:
+              mnc: mnc
+              mcc: mcc
+          ueLocationTimestamp: 2000-01-23T04:56:07.000+00:00
+          geodeticInformation: geodeticInformation
+          ecgi:
+            eutraCellId: eutraCellId
+            plmnId:
+              mnc: mnc
+              mcc: mcc
+        nrLocation:
+          geographicalInformation: geographicalInformation
+          globalGnbId:
+            gNbId:
+              bitLength: 27
+              gNBValue: gNBValue
+            plmnId:
+              mnc: mnc
+              mcc: mcc
+            n3IwfId: n3IwfId
+            ngeNbId: ngeNbId
+          ageOfLocationInformation: 19536
+          ncgi:
+            plmnId:
+              mnc: mnc
+              mcc: mcc
+            nrCellId: nrCellId
+          tai:
+            tac: tac
+            plmnId:
+              mnc: mnc
+              mcc: mcc
+          ueLocationTimestamp: 2000-01-23T04:56:07.000+00:00
+          geodeticInformation: geodeticInformation
+        n3gaLocation:
+          ueIpv4Addr: 198.51.100.1
+          n3gppTai:
+            tac: tac
+            plmnId:
+              mnc: mnc
+              mcc: mcc
+          ueIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+          n3IwfId: n3IwfId
+          portNumber: 0
+      properties:
+        eutraLocation:
+          $ref: '#/components/schemas/EutraLocation'
+        nrLocation:
+          $ref: '#/components/schemas/NrLocation'
+        n3gaLocation:
+          $ref: '#/components/schemas/N3gaLocation'
+      type: object
+    EutraLocation:
+      example:
+        geographicalInformation: geographicalInformation
+        globalNgenbId:
+          gNbId:
+            bitLength: 27
+            gNBValue: gNBValue
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+          n3IwfId: n3IwfId
+          ngeNbId: ngeNbId
+        ageOfLocationInformation: 4803
+        tai:
+          tac: tac
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+        ueLocationTimestamp: 2000-01-23T04:56:07.000+00:00
+        geodeticInformation: geodeticInformation
+        ecgi:
+          eutraCellId: eutraCellId
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+      properties:
+        tai:
+          $ref: '#/components/schemas/Tai'
+        ecgi:
+          $ref: '#/components/schemas/Ecgi'
+        ageOfLocationInformation:
+          maximum: 32767
+          minimum: 0
+          type: integer
+        ueLocationTimestamp:
+          format: date-time
+          type: string
+        geographicalInformation:
+          pattern: "^[0-9A-F]{16}$"
+          type: string
+        geodeticInformation:
+          pattern: "^[0-9A-F]{20}$"
+          type: string
+        globalNgenbId:
+          $ref: '#/components/schemas/GlobalRanNodeId'
+      required:
+      - ecgi
+      - tai
+      type: object
+    Tai:
+      example:
+        tac: tac
+        plmnId:
+          mnc: mnc
+          mcc: mcc
+      properties:
+        plmnId:
+          $ref: '#/components/schemas/PlmnId'
+        tac:
+          pattern: "(^[A-Fa-f0-9]{4}$)|(^[A-Fa-f0-9]{6}$)"
+          type: string
+      required:
+      - plmnId
+      - tac
+      type: object
+    PlmnId:
+      example:
+        mnc: mnc
+        mcc: mcc
+      properties:
+        mcc:
+          pattern: "^\\d{3}$"
+          type: string
+        mnc:
+          pattern: "^\\d{2,3}$"
+          type: string
+      required:
+      - mcc
+      - mnc
+      type: object
+    Tac:
+      pattern: "(^[A-Fa-f0-9]{4}$)|(^[A-Fa-f0-9]{6}$)"
+      type: string
+    Ecgi:
+      example:
+        eutraCellId: eutraCellId
+        plmnId:
+          mnc: mnc
+          mcc: mcc
+      properties:
+        plmnId:
+          $ref: '#/components/schemas/PlmnId'
+        eutraCellId:
+          pattern: "^[A-Fa-f0-9]{7}$"
+          type: string
+      required:
+      - eutraCellId
+      - plmnId
+      type: object
+    EutraCellId:
+      pattern: "^[A-Fa-f0-9]{7}$"
+      type: string
+    DateTime:
+      format: date-time
+      type: string
+    GlobalRanNodeId:
+      example:
+        gNbId:
+          bitLength: 27
+          gNBValue: gNBValue
+        plmnId:
+          mnc: mnc
+          mcc: mcc
+        n3IwfId: n3IwfId
+        ngeNbId: ngeNbId
+      nullable: true
+      oneOf: []
+      properties:
+        plmnId:
+          $ref: '#/components/schemas/PlmnId'
+        n3IwfId:
+          pattern: "^[A-Fa-f0-9]+$"
+          type: string
+        gNbId:
+          $ref: '#/components/schemas/GNbId'
+        ngeNbId:
+          pattern: "^(MacroNGeNB-[A-Fa-f0-9]{5}|LMacroNGeNB-[A-Fa-f0-9]{6}|SMacroNGeNB-[A-Fa-f0-9]{5})$"
+          type: string
+      required:
+      - plmnId
+      type: object
+    N3IwfId:
+      pattern: "^[A-Fa-f0-9]+$"
+      type: string
+    GNbId:
+      example:
+        bitLength: 27
+        gNBValue: gNBValue
+      properties:
+        bitLength:
+          maximum: 32
+          minimum: 22
+          type: integer
+        gNBValue:
+          pattern: "^[A-Fa-f0-9]{6,8}$"
+          type: string
+      required:
+      - bitLength
+      - gNBValue
+      type: object
+    NgeNbId:
+      pattern: "^(MacroNGeNB-[A-Fa-f0-9]{5}|LMacroNGeNB-[A-Fa-f0-9]{6}|SMacroNGeNB-[A-Fa-f0-9]{5})$"
+      type: string
+    NrLocation:
+      example:
+        geographicalInformation: geographicalInformation
+        globalGnbId:
+          gNbId:
+            bitLength: 27
+            gNBValue: gNBValue
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+          n3IwfId: n3IwfId
+          ngeNbId: ngeNbId
+        ageOfLocationInformation: 19536
+        ncgi:
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+          nrCellId: nrCellId
+        tai:
+          tac: tac
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+        ueLocationTimestamp: 2000-01-23T04:56:07.000+00:00
+        geodeticInformation: geodeticInformation
+      properties:
+        tai:
+          $ref: '#/components/schemas/Tai'
+        ncgi:
+          $ref: '#/components/schemas/Ncgi'
+        ageOfLocationInformation:
+          maximum: 32767
+          minimum: 0
+          type: integer
+        ueLocationTimestamp:
+          format: date-time
+          type: string
+        geographicalInformation:
+          pattern: "^[0-9A-F]{16}$"
+          type: string
+        geodeticInformation:
+          pattern: "^[0-9A-F]{20}$"
+          type: string
+        globalGnbId:
+          $ref: '#/components/schemas/GlobalRanNodeId'
+      required:
+      - ncgi
+      - tai
+      type: object
+    Ncgi:
+      example:
+        plmnId:
+          mnc: mnc
+          mcc: mcc
+        nrCellId: nrCellId
+      properties:
+        plmnId:
+          $ref: '#/components/schemas/PlmnId'
+        nrCellId:
+          pattern: "^[A-Fa-f0-9]{9}$"
+          type: string
+      required:
+      - nrCellId
+      - plmnId
+      type: object
+    NrCellId:
+      pattern: "^[A-Fa-f0-9]{9}$"
+      type: string
+    N3gaLocation:
+      example:
+        ueIpv4Addr: 198.51.100.1
+        n3gppTai:
+          tac: tac
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+        ueIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+        n3IwfId: n3IwfId
+        portNumber: 0
+      properties:
+        n3gppTai:
+          $ref: '#/components/schemas/Tai'
+        n3IwfId:
+          pattern: "^[A-Fa-f0-9]+$"
+          type: string
+        ueIpv4Addr:
+          example: 198.51.100.1
+          pattern: "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$"
+          type: string
+        ueIpv6Addr:
+          $ref: '#/components/schemas/Ipv6Addr'
+        portNumber:
+          minimum: 0
+          type: integer
+      type: object
+    Ipv4Addr:
+      example: 198.51.100.1
+      pattern: "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$"
+      type: string
+    Ipv6Addr:
+      allOf:
+      - pattern: "^((:|(0?|([1-9a-f][0-9a-f]{0,3}))):)((0?|([1-9a-f][0-9a-f]{0,3})):){0,6}(:|(0?|([1-9a-f][0-9a-f]{0,3})))$"
+      - pattern: "^((([^:]+:){7}([^:]+))|((([^:]+:)*[^:]+)?::(([^:]+:)*[^:]+)?))$"
+      example: 2001:db8:85a3::8a2e:370:7334
+      type: string
+    Uinteger:
+      minimum: 0
+      type: integer
+    TimeZone:
+      type: string
+    Pei:
+      pattern: "^(imei-[0-9]{15}|imeisv-[0-9]{16}|.+)$"
+      type: string
+    Ipv6Prefix:
+      allOf:
+      - pattern: "^((:|(0?|([1-9a-f][0-9a-f]{0,3}))):)((0?|([1-9a-f][0-9a-f]{0,3})):){0,6}(:|(0?|([1-9a-f][0-9a-f]{0,3})))(\\\
+          /(([0-9])|([0-9]{2})|(1[0-1][0-9])|(12[0-8])))$"
+      - pattern: "^((([^:]+:){7}([^:]+))|((([^:]+:)*[^:]+)?::(([^:]+:)*[^:]+)?))(\\\
+          /.+)$"
+      example: 2001:db8:abcd:12::0/64
+      type: string
+    Ambr:
+      example:
+        uplink: uplink
+        downlink: downlink
+      properties:
+        uplink:
+          pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+          type: string
+        downlink:
+          pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+          type: string
+      required:
+      - downlink
+      - uplink
+      type: object
+    BitRate:
+      pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+      type: string
+    SubscribedDefaultQos:
+      example:
+        priorityLevel: 89
+        "5qi": 58
+        arp:
+          priorityLevel: 9
+          preemptCap: null
+          preemptVuln: null
+      properties:
+        "5qi":
+          maximum: 255
+          minimum: 0
+          type: integer
+        arp:
+          $ref: '#/components/schemas/Arp'
+        priorityLevel:
+          maximum: 127
+          minimum: 1
+          type: integer
+      required:
+      - 5qi
+      - arp
+      type: object
+    "5Qi":
+      maximum: 255
+      minimum: 0
+      type: integer
+    Arp:
+      example:
+        priorityLevel: 9
+        preemptCap: null
+        preemptVuln: null
+      properties:
+        priorityLevel:
+          description: nullable true shall not be used for this attribute
+          maximum: 15
+          minimum: 1
+          nullable: true
+          type: integer
+        preemptCap:
+          $ref: '#/components/schemas/PreemptionCapability'
+        preemptVuln:
+          $ref: '#/components/schemas/PreemptionVulnerability'
+      required:
+      - preemptCap
+      - preemptVuln
+      - priorityLevel
+      type: object
+    ArpPriorityLevel:
+      description: nullable true shall not be used for this attribute
+      maximum: 15
+      minimum: 1
+      nullable: true
+      type: integer
+    PreemptionCapability:
+      anyOf:
+      - enum:
+        - NOT_PREEMPT
+        - MAY_PREEMPT
+        type: string
+      - type: string
+    PreemptionVulnerability:
+      anyOf:
+      - enum:
+        - NOT_PREEMPTABLE
+        - PREEMPTABLE
+        type: string
+      - type: string
+    "5QiPriorityLevel":
+      maximum: 127
+      minimum: 1
+      type: integer
+    TraceData:
+      example:
+        eventList: eventList
+        collectionEntityIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+        collectionEntityIpv4Addr: 198.51.100.1
+        traceRef: traceRef
+        interfaceList: interfaceList
+        neTypeList: neTypeList
+        traceDepth: null
+      nullable: true
+      properties:
+        traceRef:
+          pattern: "^[0-9]{3}[0-9]{2,3}-[A-Fa-f0-9]{6}$"
+          type: string
+        traceDepth:
+          $ref: '#/components/schemas/TraceDepth'
+        neTypeList:
+          pattern: "^[A-Fa-f0-9]+$"
+          type: string
+        eventList:
+          pattern: "^[A-Fa-f0-9]+$"
+          type: string
+        collectionEntityIpv4Addr:
+          example: 198.51.100.1
+          pattern: "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$"
+          type: string
+        collectionEntityIpv6Addr:
+          $ref: '#/components/schemas/Ipv6Addr'
+        interfaceList:
+          pattern: "^[A-Fa-f0-9]+$"
+          type: string
+      required:
+      - eventList
+      - neTypeList
+      - traceDepth
+      - traceRef
+      type: object
+    TraceDepth:
+      anyOf:
+      - enum:
+        - MINIMUM
+        - MEDIUM
+        - MAXIMUM
+        - MINIMUM_WO_VENDOR_EXTENSION
+        - MEDIUM_WO_VENDOR_EXTENSION
+        - MAXIMUM_WO_VENDOR_EXTENSION
+        type: string
+      - type: string
+    Snssai:
+      example:
+        sd: sd
+        sst: 92
+      properties:
+        sst:
+          maximum: 255
+          minimum: 0
+          type: integer
+        sd:
+          pattern: "^[A-Fa-f0-9]{6}$"
+          type: string
+      required:
+      - sst
+      type: object
+    NfInstanceId:
+      format: uuid
+      type: string
+    DurationSec:
+      type: integer
+    PresenceInfoRm:
+      example:
+        ecgiList:
+        - eutraCellId: eutraCellId
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+        - eutraCellId: eutraCellId
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+        globalRanNodeIdList:
+        - gNbId:
+            bitLength: 27
+            gNBValue: gNBValue
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+          n3IwfId: n3IwfId
+          ngeNbId: ngeNbId
+        - gNbId:
+            bitLength: 27
+            gNBValue: gNBValue
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+          n3IwfId: n3IwfId
+          ngeNbId: ngeNbId
+        presenceState: null
+        praId: praId
+        trackingAreaList:
+        - tac: tac
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+        - tac: tac
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+        ncgiList:
+        - plmnId:
+            mnc: mnc
+            mcc: mcc
+          nrCellId: nrCellId
+        - plmnId:
+            mnc: mnc
+            mcc: mcc
+          nrCellId: nrCellId
+      nullable: true
+      properties:
+        praId:
+          type: string
+        presenceState:
+          $ref: '#/components/schemas/PresenceState'
+        trackingAreaList:
+          items:
+            $ref: '#/components/schemas/Tai'
+          minItems: 0
+          type: array
+        ecgiList:
+          items:
+            $ref: '#/components/schemas/Ecgi'
+          minItems: 0
+          type: array
+        ncgiList:
+          items:
+            $ref: '#/components/schemas/Ncgi'
+          minItems: 0
+          type: array
+        globalRanNodeIdList:
+          items:
+            $ref: '#/components/schemas/GlobalRanNodeId'
+          type: array
+      type: object
+    PresenceState:
+      anyOf:
+      - enum:
+        - IN_AREA
+        - OUT_OF_AREA
+        - UNKNOWN
+        - INACTIVE
+        type: string
+      - type: string
+    IpIndex:
+      type: integer
+    ContentVersion:
+      description: Represents the content version of some content.
+      type: integer
+    BitRateRm:
+      nullable: true
+      pattern: ^\d+(\.\d+)? (bps|Kbps|Mbps|Gbps|Tbps)$
+      type: string
+    "5QiPriorityLevelRm":
+      maximum: 127
+      minimum: 1
+      nullable: true
+      type: integer
+    AverWindowRm:
+      default: 2000
+      maximum: 4095
+      minimum: 1
+      nullable: true
+      type: integer
+    MaxDataBurstVolRm:
+      maximum: 4095
+      minimum: 1
+      nullable: true
+      type: integer
+    PacketLossRateRm:
+      maximum: 1000
+      minimum: 0
+      nullable: true
+      type: integer
+    DateTimeRm:
+      format: date-time
+      nullable: true
+      type: string
+    FlowStatus:
+      anyOf:
+      - enum:
+        - ENABLED-UPLINK
+        - ENABLED-DOWNLINK
+        - ENABLED
+        - DISABLED
+        - REMOVED
+        type: string
+      - type: string
+    RouteToLocation:
+      anyOf: []
+      example:
+        dnai: dnai
+        routeInfo:
+          ipv6Addr: 2001:db8:85a3::8a2e:370:7334
+          ipv4Addr: 198.51.100.1
+          portNumber: 0
+        routeProfId: routeProfId
+      nullable: true
+      properties:
+        dnai:
+          type: string
+        routeInfo:
+          $ref: '#/components/schemas/RouteInformation'
+        routeProfId:
+          nullable: true
+          type: string
+      required:
+      - dnai
+      type: object
+    Dnai:
+      type: string
+    RouteInformation:
+      example:
+        ipv6Addr: 2001:db8:85a3::8a2e:370:7334
+        ipv4Addr: 198.51.100.1
+        portNumber: 0
+      nullable: true
+      properties:
+        ipv4Addr:
+          example: 198.51.100.1
+          pattern: "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$"
+          type: string
+        ipv6Addr:
+          $ref: '#/components/schemas/Ipv6Addr'
+        portNumber:
+          minimum: 0
+          type: integer
+      required:
+      - portNumber
+      type: object
+    RatingGroup:
+      $ref: '#/components/schemas/Uint32'
+    Uint32:
+      format: int32
+      minimum: 0
+      type: integer
+    ServiceId:
+      $ref: '#/components/schemas/Uint32'
+    ChargingId:
+      $ref: '#/components/schemas/Uint32'
+    ApplicationChargingId:
+      type: string
+    VolumeRm:
+      description: Unsigned integer identifying a volume in units of bytes with "nullable=true"
+        property.
+      format: int64
+      minimum: 0
+      nullable: true
+      type: integer
+    DurationSecRm:
+      nullable: true
+      type: integer
+    EthFlowDescription:
+      description: Identifies an Ethernet flow
+      example:
+        destMacAddr: destMacAddr
+        sourceMacAddr: sourceMacAddr
+        fDir: null
+        ethType: ethType
+        fDesc: fDesc
+        vlanTags:
+        - vlanTags
+        - vlanTags
+      properties:
+        destMacAddr:
+          pattern: "^([0-9a-fA-F]{2})((-[0-9a-fA-F]{2}){5})$"
+          type: string
+        ethType:
+          type: string
+        fDesc:
+          description: Defines a packet filter of an IP flow.
+          type: string
+        fDir:
+          $ref: '#/components/schemas/FlowDirection'
+        sourceMacAddr:
+          pattern: "^([0-9a-fA-F]{2})((-[0-9a-fA-F]{2}){5})$"
+          type: string
+        vlanTags:
+          items:
+            type: string
+          maxItems: 2
+          minItems: 1
+          type: array
+      required:
+      - ethType
+      type: object
+    FlowDescription_1:
+      description: Defines a packet filter of an IP flow.
+      type: string
+    QosResourceType:
+      anyOf:
+      - enum:
+        - NON_GBR
+        - NON_CRITICAL_GBR
+        - CRITICAL_GBR
+        type: string
+      - type: string
+    PacketDelBudget:
+      minimum: 1
+      type: integer
+    PacketErrRate:
+      pattern: "^([0-9]E-[0-9])$"
+      type: string
+    AverWindow:
+      default: 2000
+      maximum: 4095
+      minimum: 1
+      type: integer
+    MaxDataBurstVol:
+      maximum: 4095
+      minimum: 1
+      type: integer
+    Volume:
+      description: Unsigned integer identifying a volume in units of bytes.
+      format: int64
+      minimum: 0
+      type: integer
+    MacAddr48:
+      pattern: "^([0-9a-fA-F]{2})((-[0-9a-fA-F]{2}){5})$"
+      type: string
+    PresenceInfo:
+      example:
+        ecgiList:
+        - eutraCellId: eutraCellId
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+        - eutraCellId: eutraCellId
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+        globalRanNodeIdList:
+        - gNbId:
+            bitLength: 27
+            gNBValue: gNBValue
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+          n3IwfId: n3IwfId
+          ngeNbId: ngeNbId
+        - gNbId:
+            bitLength: 27
+            gNBValue: gNBValue
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+          n3IwfId: n3IwfId
+          ngeNbId: ngeNbId
+        presenceState: null
+        praId: praId
+        trackingAreaList:
+        - tac: tac
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+        - tac: tac
+          plmnId:
+            mnc: mnc
+            mcc: mcc
+        ncgiList:
+        - plmnId:
+            mnc: mnc
+            mcc: mcc
+          nrCellId: nrCellId
+        - plmnId:
+            mnc: mnc
+            mcc: mcc
+          nrCellId: nrCellId
+      properties:
+        praId:
+          type: string
+        presenceState:
+          $ref: '#/components/schemas/PresenceState'
+        trackingAreaList:
+          items:
+            $ref: '#/components/schemas/Tai'
+          minItems: 1
+          type: array
+        ecgiList:
+          items:
+            $ref: '#/components/schemas/Ecgi'
+          minItems: 1
+          type: array
+        ncgiList:
+          items:
+            $ref: '#/components/schemas/Ncgi'
+          minItems: 1
+          type: array
+        globalRanNodeIdList:
+          items:
+            $ref: '#/components/schemas/GlobalRanNodeId'
+          minItems: 1
+          type: array
+      type: object
+    DnaiChangeType:
+      anyOf:
+      - enum:
+        - EARLY
+        - EARLY_LATE
+        - LATE
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - EARLY: Early notification of UP path reconfiguration. - EARLY_LATE: Early and late notification of UP path reconfiguration. This value shall only be present in the subscription to the DNAI change event. - LATE: Late notification of UP path reconfiguration.
+    PolicyAssociationReleaseCause:
+      anyOf:
+      - enum:
+        - UNSPECIFIED
+        - UE_SUBSCRIPTION
+        - INSUFFICIENT_RES
+        type: string
+      - description: |
+          This string provides forward-compatibility with future extensions to the enumeration but is not used to encode content defined in the present version of this API.
+        type: string
+      description: |
+        Possible values are - UNSPECIFIED: This value is used for unspecified reasons. - UE_SUBSCRIPTION: This value is used to indicate that the session needs to be terminated because the subscription of UE has changed (e.g. was removed). - INSUFFICIENT_RES: This value is used to indicate that the server is overloaded and needs to abort the session.
+    FinalUnitAction:
+      anyOf:
+      - enum:
+        - TERMINATE
+        - REDIRECT
+        - RESTRICT_ACCESS
+        type: string
+      - type: string
+    NgApCause:
+      example:
+        value: 0
+        group: 0
+      properties:
+        group:
+          minimum: 0
+          type: integer
+        value:
+          minimum: 0
+          type: integer
+      required:
+      - group
+      - value
+      type: object
+    "5GMmCause":
+      $ref: '#/components/schemas/Uinteger'
+    QosNotifType:
+      anyOf:
+      - enum:
+        - GUARANTEED
+        - NOT_GUARANTEED
+        type: string
+      - type: string
+    Guami:
+      example:
+        plmnId:
+          mnc: mnc
+          mcc: mcc
+        amfId: amfId
+      properties:
+        plmnId:
+          $ref: '#/components/schemas/PlmnId'
+        amfId:
+          pattern: "^[A-Fa-f0-9]{6}$"
+          type: string
+      required:
+      - amfId
+      - plmnId
+      type: object
+    AmfId:
+      pattern: "^[A-Fa-f0-9]{6}$"
+      type: string
+    AnGwAddress:
+      anyOf: []
+      description: describes the address of the access network gateway control node
+      example:
+        anGwIpv6Addr: 2001:db8:85a3::8a2e:370:7334
+        anGwIpv4Addr: 198.51.100.1
+      nullable: true
+      properties:
+        anGwIpv4Addr:
+          example: 198.51.100.1
+          pattern: "^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$"
+          type: string
+        anGwIpv6Addr:
+          $ref: '#/components/schemas/Ipv6Addr'
+      type: object
+  securitySchemes:
+    oAuth2Clientcredentials:
+      flows:
+        clientCredentials:
+          scopes:
+            npcf-smpolicycontrol: Access to the Npcf_SMPolicyControl API
+          tokenUrl: "{nrfApiRoot}/oauth2/token"
+      type: oauth2

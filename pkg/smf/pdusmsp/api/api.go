@@ -46,8 +46,8 @@ type ApiServer interface {
 
 type ApiServerInfo struct {
 	serverStartTime time.Time
-	apiChannel      chan *SessionMessage
-	apiReceiver     chan *Receiver
+	ApiChannel      chan *SessionMessage
+	ApiReceiver     chan *Receiver
 	//	router          http.Handler
 	nodeInfo        config.SmfNodeInfo
 	RequestResponse openapiserver.ImplResponse
@@ -90,18 +90,18 @@ func NewApiServer(cfg config.SmfNodeInfo) ApiServer {
 	// SMContextsCollectionAPIService := openapiserver.NewSMContextsCollectionAPIService()
 	// SMContextsCollectionAPIController := NewSMContextsCollectionAPIController(SMContextsCollectionAPIService)
 
-	//router := NewRouter(
+	// router := NewRouter(
 	//              IndividualPDUSessionHSMFAPIController,
-	//	IndividualSMContextAPIController,
+	// 	IndividualSMContextAPIController,
 	//              PDUSessionsCollectionAPIController,
-	//	SMContextsCollectionAPIController,
-	//)
+	// 	SMContextsCollectionAPIController,
+	// )
 
 	return &ApiServerInfo{
 		//	router:     router,
 		nodeInfo:    cfg,
-		apiChannel:  make(chan *SessionMessage, ApiChannelCapacity),
-		apiReceiver: make(chan *Receiver),
+		ApiChannel:  make(chan *SessionMessage, ApiChannelCapacity),
+		ApiReceiver: make(chan *Receiver),
 		//		individualController: IndividualSMContextAPIController,
 		//		collectionController: SMContextsCollectionAPIController,
 	}
@@ -246,7 +246,7 @@ func (a *ApiServerInfo) PostSmContexts(w http.ResponseWriter, r *http.Request) {
 	}
 	klog.Infof("Binary Data file: %v", binaryDataN1SmMessageParam)
 	//send writer in channel
-	a.apiChannel <- &SessionMessage{
+	a.ApiChannel <- &SessionMessage{
 		MsgType:                       sm.NSMF_CREATE_SM_CONTEXT_REQUEST,
 		SessionMsg:                    smContextCreateDataParam,
 		SmContextRefID:                "",
@@ -258,7 +258,7 @@ func (a *ApiServerInfo) PostSmContexts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//TODO make a reciever function using code written below
-	rec := <-a.apiReceiver
+	rec := <-a.ApiReceiver
 	// klog.Info(rec)
 
 	if rec.RecievedErr != nil {
@@ -315,14 +315,14 @@ func (a *ApiServerInfo) ReleaseSmContext(w http.ResponseWriter, r *http.Request)
 	}
 	klog.Infof("Binary Data file: %v", binaryDataN2SmInformationParam)
 
-	a.apiChannel <- &SessionMessage{MsgType: sm.NSMF_RELEASE_SM_CONTEXT_REQUEST,
+	a.ApiChannel <- &SessionMessage{MsgType: sm.NSMF_RELEASE_SM_CONTEXT_REQUEST,
 		SessionMsg:                    smContextReleaseDataParam,
 		SmContextRefID:                smContextRefParam,
 		BinaryDataN2SmInformation:     binaryDataN2SmInformationParam,
 		BinaryDataN1SmMessage:         nil,
 		BinaryDataN2SmInformationExt1: nil}
 	//TODO  create a function to handle situation below
-	rec := <-a.apiReceiver
+	rec := <-a.ApiReceiver
 	// klog.Info(rec)
 
 	if rec.RecievedErr != nil {
@@ -364,12 +364,12 @@ func (a *ApiServerInfo) RetrieveSmContext(w http.ResponseWriter, r *http.Request
 
 	klog.Infof("Data Checks passed")
 
-	a.apiChannel <- &SessionMessage{MsgType: sm.NSMF_RETRIEVE_SM_CONTEXT_REQUEST,
+	a.ApiChannel <- &SessionMessage{MsgType: sm.NSMF_RETRIEVE_SM_CONTEXT_REQUEST,
 		SessionMsg:                smContextRetrieveDataParam,
 		SmContextRefID:            smContextRefParam,
 		BinaryDataN2SmInformation: nil,
 		BinaryDataN1SmMessage:     nil, BinaryDataN2SmInformationExt1: nil}
-	rec := <-a.apiReceiver
+	rec := <-a.ApiReceiver
 	// klog.Info(rec)
 
 	if rec.RecievedErr != nil {
@@ -443,14 +443,14 @@ func (a *ApiServerInfo) UpdateSmContext(w http.ResponseWriter, r *http.Request) 
 	}
 	klog.Infof("Binary Data file: %v", binaryDataN2SmInformationExt1Param)
 
-	a.apiChannel <- &SessionMessage{MsgType: sm.NSMF_UPDATE_SM_CONTEXT_REQUEST,
+	a.ApiChannel <- &SessionMessage{MsgType: sm.NSMF_UPDATE_SM_CONTEXT_REQUEST,
 		SessionMsg:                    smContextUpdateDataParam,
 		SmContextRefID:                smContextRefParam,
 		BinaryDataN2SmInformation:     binaryDataN2SmInformationParam,
 		BinaryDataN1SmMessage:         binaryDataN1SmMessageParam,
 		BinaryDataN2SmInformationExt1: binaryDataN2SmInformationExt1Param}
 
-	rec := <-a.apiReceiver
+	rec := <-a.ApiReceiver
 	// klog.Info(rec)
 
 	if rec.RecievedErr != nil {
@@ -466,9 +466,9 @@ func (a *ApiServerInfo) UpdateSmContext(w http.ResponseWriter, r *http.Request) 
 }
 
 func (a *ApiServerInfo) WatchApiChannel() chan *SessionMessage {
-	return a.apiChannel
+	return a.ApiChannel
 }
 
 func (a *ApiServerInfo) WatchRecChannel() chan *Receiver {
-	return a.apiReceiver
+	return a.ApiReceiver
 }

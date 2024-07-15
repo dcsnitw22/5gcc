@@ -62,6 +62,7 @@ type Pdusmsp struct {
 	dbManager       db.DBManager
 	grpc            grpc.Grpc
 	apiClient       apiclient.ApiClient
+	udmapiClient    apiclient.UdmApiClient
 	apiServer       api.ApiServer
 	sessionWorkers  SessionWorkers
 	clock           clock.Clock
@@ -96,6 +97,9 @@ func NewPdusmsp(cfg *config.PdusmspConfig, time time.Time) (PdusmspBootstrap, bo
 	// Intialize the api handler
 	//should both apiClient and apiServer be created in newcsc?
 	pdusmsp.apiClient = apiclient.NewApiClient(cfg)
+	pdusmsp.udmapiClient = apiclient.NewUdmAPIClient(cfg)
+
+	pdusmsp.udmapiClient.GetSessionManagementSubscriptionDataRetrievalAPI()
 	pdusmsp.apiServer = api.NewApiServer(cfg.NodeInfo)
 
 	// Intialize session db
@@ -131,6 +135,7 @@ func (p *Pdusmsp) Run(configChannel <-chan config.PdusmspConfig) {
 
 	// Start the api handler
 	p.apiClient.Start()
+	p.udmapiClient.Udm_Start()
 	go p.apiServer.Start()
 
 	// Start the grpc

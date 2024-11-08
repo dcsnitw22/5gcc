@@ -11,7 +11,6 @@ package sm
 
 import (
 	"context"
-	"net/http"
 
 	openapi "w5gc.io/wipro5gcore/openapi/openapiudrserver"
 
@@ -70,51 +69,51 @@ func (s *SessionManagementSubscriptionDataAPIService) Start() {
 // QuerySmData - Retrieves the Session Management subscription data of a UE
 func (s *SessionManagementSubscriptionDataAPIService) QuerySmData(ctx context.Context, ueId string, servingPlmnId string, singleNssai openapi.Snssai, dnn string, fields []string, supportedFeatures string, ifNoneMatch string, ifModifiedSince string) (openapi.ImplResponse, error) {
 	fmt.Println("I am in udrserver query request")
-	var d openapi.DBClient
+	// var d openapi.DBClient
 
-	// TODO IMPORT SQL FILE
-	// d.sqlClient = openapi.DBConnect("udr")
+	// // TODO IMPORT SQL FILE
+	// // d.sqlClient = openapi.DBConnect("udr")
 
-	var (
-		smSubsData   openapi.SmSubsData
-		sNssaiExists bool
-		dnnExists    bool
-	)
-	sNssaiExists = singleNssai.Sst != 0
-	dnnExists = dnn != ""
-	if sNssaiExists && dnnExists {
-		smSubsData = d.GetDataForSliceDnn(
-			ueId,
-			servingPlmnId,
-			singleNssai,
-			dnn)
-	}
-	if sNssaiExists && !dnnExists {
-		smSubsData = d.GetDataForSlice(
-			ueId,
-			servingPlmnId,
-			singleNssai)
-	}
-	if !sNssaiExists && dnnExists {
-		smSubsData = d.GetDataForDnn(
-			ueId,
-			servingPlmnId,
-			dnn)
-	}
-	if !sNssaiExists && !dnnExists {
-		smSubsData = d.GetData(
-			ueId,
-			servingPlmnId)
-	}
-	// TODO - update QuerySmData with the required logic for this service method.
-	// Add api_session_management_subscription_data_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
+	// var (
+	// 	smSubsData   openapi.SmSubsData
+	// 	sNssaiExists bool
+	// 	dnnExists    bool
+	// )
+	// sNssaiExists = singleNssai.Sst != 0
+	// dnnExists = dnn != ""
+	// if sNssaiExists && dnnExists {
+	// 	smSubsData = d.GetDataForSliceDnn(
+	// 		ueId,
+	// 		servingPlmnId,
+	// 		singleNssai,
+	// 		dnn)
+	// }
+	// if sNssaiExists && !dnnExists {
+	// 	smSubsData = d.GetDataForSlice(
+	// 		ueId,
+	// 		servingPlmnId,
+	// 		singleNssai)
+	// }
+	// if !sNssaiExists && dnnExists {
+	// 	smSubsData = d.GetDataForDnn(
+	// 		ueId,
+	// 		servingPlmnId,
+	// 		dnn)
+	// }
+	// if !sNssaiExists && !dnnExists {
+	// 	smSubsData = d.GetData(
+	// 		ueId,
+	// 		servingPlmnId)
+	// }
+	// // TODO - update QuerySmData with the required logic for this service method.
+	// // Add api_session_management_subscription_data_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 
-	// TODO: Uncomment the next line to return response Response(200, SmSubsData{}) or use other options such as http.Ok ...
-	return openapi.Response(200, smSubsData), nil
+	// // TODO: Uncomment the next line to return response Response(200, SmSubsData{}) or use other options such as http.Ok ...
+	// return openapi.Response(200, smSubsData), nil
 	// return openapi.Response(200, openapi.SmSubsData{}), nil
 
 	// TODO: Uncomment the next line to return response Response(0, {}) or use other options such as http.Ok ...
-	// return Response(0, nil),nil
+	return openapi.Response(0, nil), nil
 
 	// return Response(http.StatusNotImplemented, nil), errors.New("QuerySmData method not implemented")
 }
@@ -125,18 +124,18 @@ func (s *SessionManagementSubscriptionDataAPIService) SubscriptionDataSubscripti
 	// Add api_subs_to_notify_collection_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 
 	// Store subscriptionDataSubscriptions in MySQL database (pseudo-code)
-	err := s.DB.StoreSubscription(subscriptionDataSubscriptions) // have to put this data into the database
-	if err != nil {
-		return openapi.Response(http.StatusInternalServerError, nil), err
-	}
+	// err := s.DB.StoreSubscription(subscriptionDataSubscriptions) // have to put this data into the database
+	// if err != nil {
+	// 	return openapi.Response(http.StatusInternalServerError, nil), err
+	// }
 
-	// Return a response with the createdSubscription (dummy data)
-	return openapi.Response(http.StatusCreated, subscriptionDataSubscriptions), nil
+	// // Return a response with the createdSubscription (dummy data)
+	// return openapi.Response(http.StatusCreated, subscriptionDataSubscriptions), nil
 	// TODO: Uncomment the next line to return response Response(201, SubscriptionDataSubscriptions{}) or use other options such as http.Ok ...
 	// return Response(201, SubscriptionDataSubscriptions{}), nil
 
 	// TODO: Uncomment the next line to return response Response(0, {}) or use other options such as http.Ok ...
-	// return Response(0, nil),nil
+	return openapi.Response(0, nil), nil
 
 	// return Response(http.StatusNotImplemented, nil), errors.New("SubscriptionDataSubscriptions method not implemented")
 }

@@ -2,7 +2,7 @@ package config
 
 import (
 	"bytes"
-	"os"
+	"fmt"
 	"time"
 
 	homedir "github.com/mitchellh/go-homedir"
@@ -14,8 +14,8 @@ import (
 
 const (
 	// DefaultConfigFilePath = "/go/src/w5gc.io/wipro5gcore/configs/smf"
-	DefaultConfigFilePath = "/wipro5gc/configs/udr"
-	DefaultConfigFileName = "udrs.json"
+	DefaultConfigFilePath = "/5gcc/configs/udr"
+	DefaultConfigFileName = "udrs"
 	DefaultEtcdConfigKey  = "/w5gc/config/udr/udrs.json"
 	DefaultEtcdServer     = "http://localhost:2379"
 	DefaultEtcdConfigType = "json"
@@ -62,18 +62,20 @@ var defaultUdrsConfig = []byte(`
     ]
 }`)
 
-var ConfigChannel chan UdrsConfig
+var ConfigChannel = make(chan UdrsConfig)
+
 var UdrsCfg, UdrsRuntimeCfg UdrsConfig
 
 func InitConfig(cfgFile string, etcdServer string, etcdConfigKey string, resetFlag bool) (*UdrsConfig, error) {
-
 	runtime_viper := viper.New()
 	runtime_viper.Set("Verbose", true)
-	//viper.Set("LogFile", LogFile)
 	var etcdConfig bool
 
-	// If Udrs is not reset try to configure from etcd
-	if resetFlag != true {
+	// Initialize ConfigChannel
+	ConfigChannel = make(chan UdrsConfig)
+
+	// Try to configure from etcd if resetFlag is false
+	if !resetFlag {
 		if etcdServer == "" {
 			klog.Errorf("Udrs configuration using default etcd server %s", DefaultEtcdServer)
 			etcdServer = DefaultEtcdServer
@@ -90,89 +92,84 @@ func InitConfig(cfgFile string, etcdServer string, etcdConfigKey string, resetFl
 		if err == nil {
 			klog.Info("Udrs configured using etcd")
 			etcdConfig = true
+		} else {
+			klog.Errorf("Udrs configuration using etcd failed: %v", err)
 		}
-
-		klog.Error("Udrs configuration using etcd failed")
 	}
 
 	if !etcdConfig {
 		klog.Info("Udrs configuration using config file")
 
-		// Check for config file parameter
 		if cfgFile != "" {
 			runtime_viper.SetConfigFile(cfgFile)
 		} else {
-			// Find home directory.
 			home, err := homedir.Dir()
 			if err != nil {
-				klog.Errorf("[Unable to get home directory] %s", err.Error())
+				klog.Errorf("Unable to get home directory: %s", err.Error())
+				return nil, err
 			}
 
-			// Search config in home directory with name "go/src/w5gc.io/wipro5gcore/configs/" .
-			klog.Info(home)
 			runtime_viper.AddConfigPath(home + DefaultConfigFilePath)
 			runtime_viper.SetConfigName(DefaultConfigFileName)
 		}
 
 		runtime_viper.AutomaticEnv()
-
+		klog.Info("Reading config file")
 		if err := runtime_viper.ReadInConfig(); err != nil {
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				klog.Error("[Config file not found in viper]")
+				klog.Error("Config file not found in viper")
 			} else {
-				klog.Error("[Unable to read config file in viper]")
+				klog.Error("Unable to read config file in viper")
 			}
-			klog.Errorf("[Unable to read config file, setting default values] %s", err.Error())
+			klog.Errorf("Unable to read config file, setting default values: %s", err.Error())
 			runtime_viper.SetConfigType(DefaultConfigType)
 			if err := runtime_viper.ReadConfig(bytes.NewBuffer(defaultUdrsConfig)); err != nil {
-				klog.Errorf("[Unable to read config file with default values] %s", err.Error())
-				os.Exit(1)
+				klog.Errorf("Unable to read config file with default values: %s", err.Error())
+				return nil, err
 			}
 		}
+
+		klog.Info("Unmarshalling config file")
 	}
 
-	// Need to set default vaues TODO GURU
-
-	// unmarshal config in viper to  config
+	// Unmarshal config into UdrsCfg
 	err := runtime_viper.Unmarshal(&UdrsCfg)
 	if err != nil {
-		klog.Fatalf("Unable to decode pdusmsp config into struct, %v", err)
-		os.Exit(1)
+		klog.Fatalf("Unable to decode Udrs config into struct: %v", err)
+		return nil, err
 	}
 
-	// Write config to remote TODO GURU
-	// klog.Info(etcdConfig)
-	// etcdConfig = true
+	// Ensure UdrsCfg is not nil before proceeding
+	if UdrsCfg.Version == "" {
+		klog.Error("UdrsCfg is not properly initialized")
+		return nil, fmt.Errorf("UdrsCfg is not properly initialized")
+	}
+	klog.Info("UdrsCfg initialized successfully")
+	// Start a goroutine to watch remote config changes if etcdConfig is true
 	if etcdConfig {
-		ConfigChannel = make(chan UdrsConfig)
-
-		// Start a goroutine to watch remote config changes forever
-		// Watch changes for config file? TODO GURU
 		go func() {
 			for {
-				// delay after each request
 				time.Sleep(time.Second * 5)
-
-				// currently, only tested with etcd support
 				err := runtime_viper.WatchRemoteConfig()
 				if err != nil {
-					klog.Errorf("unable to read remote pdusmsp config: %v", err)
+					klog.Errorf("Unable to read remote config: %v", err)
 					continue
 				}
-
-				// unmarshal new config into our runtime config struct
-				runtime_viper.Unmarshal(&UdrsRuntimeCfg)
-
-				// Notify pdusmsp event handler of the change
+				err = runtime_viper.Unmarshal(&UdrsRuntimeCfg)
+				if err != nil {
+					klog.Errorf("Unable to decode remote config into struct: %v", err)
+					continue
+				}
 				ConfigChannel <- UdrsRuntimeCfg
 			}
 		}()
 	}
-	// temperory| jugad
+	klog.Info("passed etcconfig not found test")
+	// Send initial configuration to ConfigChannel
 	go func() {
-		ConfigChannel = make(chan UdrsConfig)
-		klog.Info(UdrsCfg)
+		time.Sleep(time.Second * 5)
+		klog.Info("Sending initial configuration to ConfigChannel")
 		ConfigChannel <- UdrsCfg
 	}()
-	return &UdrsCfg, err
+	return &UdrsCfg, nil
 }

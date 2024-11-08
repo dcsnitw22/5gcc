@@ -46,6 +46,22 @@ var (
 		Name: "sm_release_operations_total",
 		Help: "The total number of SM release operations",
 	})
+	UsersPerSession = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "users_per_session_id",
+			Help: "Tracks the number of users per session ID",
+		},
+		[]string{"session_id", "user_id", "pei"},
+	)
+	createSessionSuccess = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sm_create_session_success_total",
+		Help: "The total number of successful session creations",
+	})
+
+	createSessionAttempts = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sm_create_session_attempts_total",
+		Help: "The total number of session creation attempts",
+	})
 )
 
 type SessionManager interface {
@@ -201,6 +217,8 @@ func (s *SmInfo) ProcessNsmfCreateSmContextRequest(
 	// TODO - update ProcessNsmfCreateSmContextRequest with the required logic for this service method.
 	// Add api_sm_contexts_collection_service.go to the .openapiserver-generator-ignore to avoid overwriting this service implementation when updating open api gen>
 	klog.Info("create function initiated")
+	createSessionAttempts.Inc()
+
 	if jsonData.PduSessionId == 0 {
 		return openapiserver.Response(403, openapiserver.SmContextCreateError{Error: openapiserver.ProblemDetails{Title: "invalid request data",
 			Type: "validityErr", Status: 403, Detail: "invalid PduSessionId "}, N1SmMsg: jsonData.N1SmMsg}), errors.New("invalid PduSessionId")
@@ -391,6 +409,14 @@ func (s *SmInfo) ProcessNsmfCreateSmContextRequest(
 		}), err
 	}
 	createProcess.Inc()
+
+	pduSessionIdStr := fmt.Sprintf("%d", sessionData.PduSessionId)
+	UsersPerSession.WithLabelValues(pduSessionIdStr, sessionData.Supi, sessionData.Pei).Inc()
+
+	createSessionSuccess.Inc()
+
+	// Increment the UsersPerSession metric
+	// UsersPerSession.WithLabelValues(pduSessionIdStr, sessionData.Supi+"_"+sessionData.Pei).Inc()
 	//On success, "201 Created" shall be returned, the payload body of the POST response shall contain the representation describing the status of the request and the "Location" header shall be present and shall contain the URI of the created resource. The authority and/or deployment-specific string of the apiRoot of the created resource URI may differ from the authority and/or deployment-specific string of the apiRoot of the request URI received in the POST request.
 	return openapiserver.Response(201, openapiserver.SmContextCreatedData{
 		UpCnxState:   sessionData.State,
@@ -520,6 +546,11 @@ func (s *SmInfo) ProcessNsmfReleaseSmContextRequest(smContextRef string, smConte
 		return openapiserver.Response(http.StatusInternalServerError, nil), errors.New("internal server error")
 	}
 	releaseProcess.Inc()
+
+	pduSessionIdStr := fmt.Sprintf("%d", smcontext.PduSessionId)
+
+	// Decrement the Prometheus metric with session_id and user_id
+	UsersPerSession.WithLabelValues(pduSessionIdStr, smcontext.Supi, smcontext.Pei).Dec()
 
 	//why is this commented ask deep
 

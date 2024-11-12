@@ -74,10 +74,10 @@ func (s *DefaultAPIService) Start() {
 func (s *DefaultAPIService) SmPoliciesPost(ctx context.Context, smPolicyContextData openapi.SmPolicyContextData) (openapi.ImplResponse, error) {
 
 	//TODO Put in main code
-	var dbcli DBClient
+	var dbcli openapi.DBClient
 	var err error
 
-	dbcli.redisClient, err = dbcli.DBConnect()
+	dbcli.RedisClient, err = dbcli.DBConnect()
 
 	if err != nil {
 		return openapi.Response(511, openapi.ProblemDetails{
@@ -216,9 +216,9 @@ func (s *DefaultAPIService) SmPoliciesPost(ctx context.Context, smPolicyContextD
 // SmPoliciesSmPolicyIdDeletePost -
 func (s *DefaultAPIService) SmPoliciesSmPolicyIdDeletePost(ctx context.Context, smPolicyId string, smPolicyDeleteData openapi.SmPolicyDeleteData) (openapi.ImplResponse, error) {
 
-	var dbcli DBClient
+	var dbcli openapi.DBClient
 	var err error
-	dbcli.redisClient, err = dbcli.DBConnect()
+	dbcli.RedisClient, err = dbcli.DBConnect()
 	if err != nil {
 		return openapi.Response(511, openapi.ProblemDetails{
 			Detail: "INTERNAL_ERROR",
@@ -254,9 +254,9 @@ func (s *DefaultAPIService) SmPoliciesSmPolicyIdDeletePost(ctx context.Context, 
 // // SmPoliciesSmPolicyIdGet -
 func (s *DefaultAPIService) SmPoliciesSmPolicyIdGet(ctx context.Context, smPolicyId string) (openapi.ImplResponse, error) {
 
-	var dbcli DBClient
+	var dbcli openapi.DBClient
 	var err error
-	dbcli.redisClient, err = dbcli.DBConnect()
+	dbcli.RedisClient, err = dbcli.DBConnect()
 	if err != nil {
 		return openapi.Response(511, openapi.ProblemDetails{
 			Detail: "INTERNAL_ERROR",
@@ -293,9 +293,9 @@ func (s *DefaultAPIService) SmPoliciesSmPolicyIdGet(ctx context.Context, smPolic
 // // SmPoliciesSmPolicyIdUpdatePost -
 func (s *DefaultAPIService) SmPoliciesSmPolicyIdUpdatePost(ctx context.Context, smPolicyId string, smPolicyUpdateContextData openapi.SmPolicyUpdateContextData) (openapi.ImplResponse, error) {
 
-	var dbcli DBClient
+	var dbcli openapi.DBClient
 	var err error
-	dbcli.redisClient, err = dbcli.DBConnect()
+	dbcli.RedisClient, err = dbcli.DBConnect()
 	if err != nil {
 		return openapi.Response(511, openapi.ProblemDetails{
 			Detail: "INTERNAL_ERROR",

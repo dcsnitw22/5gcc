@@ -10,11 +10,12 @@
 package openapi_pcf_srv
 
 import (
-	openapi_udr_cli "5gCore/udrClient"
 	"context"
 	"errors"
 	"fmt"
 	"strconv"
+
+	openapi_udr_cli "w5gc.io/wipro5gcore/openapi/openapiudrclient"
 )
 
 // DefaultAPIService is a service that implements the logic for the DefaultAPIServicer
@@ -37,7 +38,7 @@ func (s *DefaultAPIService) SmPoliciesPost(ctx context.Context, smPolicyContextD
 	var dbcli DBClient
 	var err error
 
-	dbcli.redisClient, err = dbcli.DBConnect()
+	dbcli.RedisClient, err = dbcli.DBConnect()
 
 	if err != nil {
 		return Response(511, ProblemDetails{
@@ -180,7 +181,7 @@ func (s *DefaultAPIService) SmPoliciesSmPolicyIdDeletePost(ctx context.Context, 
 
 	var dbcli DBClient
 	var err error
-	dbcli.redisClient, err = dbcli.DBConnect()
+	dbcli.RedisClient, err = dbcli.DBConnect()
 	if err != nil {
 		return Response(511, ProblemDetails{
 			Detail: "INTERNAL_ERROR",
@@ -218,7 +219,7 @@ func (s *DefaultAPIService) SmPoliciesSmPolicyIdGet(ctx context.Context, smPolic
 
 	var dbcli DBClient
 	var err error
-	dbcli.redisClient, err = dbcli.DBConnect()
+	dbcli.RedisClient, err = dbcli.DBConnect()
 	if err != nil {
 		return Response(511, ProblemDetails{
 			Detail: "INTERNAL_ERROR",
@@ -257,7 +258,7 @@ func (s *DefaultAPIService) SmPoliciesSmPolicyIdUpdatePost(ctx context.Context, 
 
 	var dbcli DBClient
 	var err error
-	dbcli.redisClient, err = dbcli.DBConnect()
+	dbcli.RedisClient, err = dbcli.DBConnect()
 	if err != nil {
 		return Response(511, ProblemDetails{
 			Detail: "INTERNAL_ERROR",

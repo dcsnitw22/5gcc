@@ -1,0 +1,1757 @@
+So, I have implemented tracing for the create function part of my code, I will share the code files with you so that you can understand how I have implemented the tracing for create function part.
+
+GOAL:  In the similar manner how tracing is implemented for create function, I want you to implement tracing for release function.
+
+Below order should be followed:
+1.Routes() in api.go
+2.UpdateSmContext() in api.go
+3. handlePdusmspEvents() in pdusmsp.go
+4.dispatchWork() in pdusmsp.go
+5. ProcessNsmfUpdateSmContextRequest() in sm.go
+IMP NOTE: Inside the function there is an if condition, that separates update and release.
+
+Now I will share the code files with you.
+
+This is my api.go code:
+
+package api
+
+
+import (
+   "context"
+   "encoding/json"
+   "io/ioutil"
+   "net/http"
+   "strings"
+   "time"
+
+
+   //"net"
+
+
+   "github.com/gorilla/mux"
+   "k8s.io/klog"
+
+
+   //"w5gc.io/wipro5gcore/openapi"
+   "w5gc.io/wipro5gcore/openapi/openapiserver"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/config"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm"
+
+
+   //"net"
+
+
+   //"w5gc.io/wipro5gcore/openapi"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/tracing"
+   // "go.opentelemetry.io/otel/attribute"
+   // "go.opentelemetry.io/otel/trace"
+   "go.opentelemetry.io/otel/codes"
+)
+
+
+const (
+   ApiChannelCapacity = 100
+)
+
+
+type SessionMessage struct {
+   MsgType                       sm.MessageType
+   SessionMsg                    sm.SMContextMessage
+   SmContextRefID                string
+   BinaryDataN1SmMessage         []byte
+   BinaryDataN2SmInformation     []byte
+   BinaryDataN2SmInformationExt1 []byte
+   Writer                        http.ResponseWriter
+   Request                       *http.Request
+   Ctx                           context.Context
+}
+
+
+type Receiver struct {
+   RecievedResponse openapiserver.ImplResponse
+   RecievedErr      error
+}
+
+
+type ApiServer interface {
+   Start()
+   WatchApiChannel() chan *SessionMessage
+   WatchRecChannel() chan *Receiver
+}
+
+
+type ApiServerInfo struct {
+   serverStartTime time.Time
+   apiChannel      chan *SessionMessage
+   apiReceiver     chan *Receiver
+   //  router          http.Handler
+   nodeInfo        config.SmfNodeInfo
+   RequestResponse openapiserver.ImplResponse
+   ErrorResponse   error
+
+
+   // individualController *IndividualSMContextAPIController
+   // collectionController *SMContextsCollectionAPIController
+}
+
+
+// Added --> Including code from api files generated
+// SMContextsCollectionAPIController binds http requests to an api service and writes the service results to the http response
+// type SMContextsCollectionAPIController struct {
+//  service      openapiserver.SMContextsCollectionAPIServicer
+//  errorHandler openapiserver.ErrorHandler
+// }
+
+
+// SMContextsCollectionAPIOption for how the controller is set up.
+//type SMContextsCollectionAPIOption func(*SMContextsCollectionAPIController)
+
+
+// IndividualSMContextAPIController binds http requests to an api service and writes the service results to the http response
+// type IndividualSMContextAPIController struct {
+//  service      openapiserver.IndividualSMContextAPIServicer
+//  errorHandler openapiserver.ErrorHandler
+// }
+
+
+// IndividualSMContextAPIOption for how the controller is set up.
+//type IndividualSMContextAPIOption func(*IndividualSMContextAPIController)
+
+
+func NewApiServer(cfg config.SmfNodeInfo) ApiServer {
+   //Commented by Mounika --> PDU Session will be handled by HSMF and ISMF
+   //      IndividualPDUSessionHSMFAPIService := NewIndividualPDUSessionHSMFAPIService()
+   //      IndividualPDUSessionHSMFAPIController := NewIndividualPDUSessionHSMFAPIController(IndividualPDUSessionHSMFAPIService)
+
+
+   // IndividualSMContextAPIService := openapiserver.NewIndividualSMContextAPIService()
+   // IndividualSMContextAPIController := NewIndividualSMContextAPIController(IndividualSMContextAPIService)
+
+
+   //      PDUSessionsCollectionAPIService := NewPDUSessionsCollectionAPIService()
+   //      PDUSessionsCollectionAPIController := NewPDUSessionsCollectionAPIController(PDUSessionsCollectionAPIService)
+
+
+   // SMContextsCollectionAPIService := openapiserver.NewSMContextsCollectionAPIService()
+   // SMContextsCollectionAPIController := NewSMContextsCollectionAPIController(SMContextsCollectionAPIService)
+
+
+   //router := NewRouter(
+   //              IndividualPDUSessionHSMFAPIController,
+   //  IndividualSMContextAPIController,
+   //              PDUSessionsCollectionAPIController,
+   //  SMContextsCollectionAPIController,
+   //)
+
+
+   return &ApiServerInfo{
+       //  router:     router,
+       nodeInfo:    cfg,
+       apiChannel:  make(chan *SessionMessage, ApiChannelCapacity),
+       apiReceiver: make(chan *Receiver),
+       //      individualController: IndividualSMContextAPIController,
+       //      collectionController: SMContextsCollectionAPIController,
+   }
+}
+
+
+// func GetResponse(resp openapiserver.ImplResponse,err error)
+
+
+func (a *ApiServerInfo) Start() {
+   klog.Infof("Started SMF pdusmsp API server")
+   router := NewRouter(a.Routes())
+   klog.Infof("Started the server on Port: %v", a.nodeInfo.ApiPort)
+   klog.Fatal(http.ListenAndServe(a.nodeInfo.ApiPort, router))
+
+
+}
+
+
+// Following code added from generated code
+
+
+// NewIndividualSMContextAPIController creates a default api controller
+// func NewIndividualSMContextAPIController(s openapiserver.IndividualSMContextAPIServicer, opts ...IndividualSMContextAPIOption) Router {
+//  controller := &IndividualSMContextAPIController{
+//      service:      s,
+//      errorHandler: openapiserver.DefaultErrorHandler,
+//  }
+
+
+//  for _, opt := range opts {
+//      opt(controller)
+//  }
+
+
+//  return controller
+// }
+
+
+// NewSMContextsCollectionAPIController creates a default api controller
+// func NewSMContextsCollectionAPIController(s openapiserver.SMContextsCollectionAPIServicer, opts ...SMContextsCollectionAPIOption) Router {
+//  controller := &SMContextsCollectionAPIController{
+//      service:      s,
+//      errorHandler: openapiserver.DefaultErrorHandler,
+//  }
+
+
+//  for _, opt := range opts {
+//      opt(controller)
+//  }
+
+
+//  return controller
+// }
+
+
+// Routes returns all the api routes for the SMContextsCollectionAPIController
+func (a *ApiServerInfo) Routes() Routes {
+   return Routes{
+       "PostSmContexts": Route{
+           strings.ToUpper("Post"),
+           "/nsmf-pdusession/v1/sm-contexts",
+           a.PostSmContexts,
+       },
+       "ReleaseSmContext": Route{
+           strings.ToUpper("Post"),
+           "/nsmf-pdusession/v1/sm-contexts/{smContextRef}/release",
+           a.ReleaseSmContext,
+       },
+       "RetrieveSmContext": Route{
+           strings.ToUpper("Post"),
+           "/nsmf-pdusession/v1/sm-contexts/{smContextRef}/retrieve",
+           a.RetrieveSmContext,
+       },
+       "UpdateSmContext": Route{
+           strings.ToUpper("Post"),
+           "/nsmf-pdusession/v1/sm-contexts/{smContextRef}/modify",
+           a.UpdateSmContext,
+       },
+   }
+}
+
+
+// PostSmContexts - Create SM Context
+func (a *ApiServerInfo) PostSmContexts(w http.ResponseWriter, r *http.Request) {
+   klog.Info("Inside PostSmContexts function")
+
+
+   // Ensure the request is not nil
+   if r == nil {
+       klog.Errorf("Request is nil")
+       http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+       return
+   }
+
+
+   ctx, span := tracing.Tracer.Start(r.Context(), "PostSmContexts")
+   defer span.End()
+   //validate whether amf node ip is present or not
+   //remove ip check we will di amfi check
+   // AmfNodeIPAddress := r.Header.Get("X-Real-Ip")
+   // if AmfNodeIPAddress == "" {
+   //  AmfNodeIPAddress = r.Header.Get("X-Forwarded-For")
+   // }
+   // if AmfNodeIPAddress == "" {
+   //  AmfNodeIPAddress = r.RemoteAddr
+   // }
+   // AmfNodeIPAddress = strings.Split(AmfNodeIPAddress, ":")[0]
+   // N11AmfNodes := (config.PdusmspCfg).N11AmfNodes
+   // found := false
+   // klog.Info(N11AmfNodes)
+   // for i := 0; i < len(N11AmfNodes); i++ {
+   //  klog.Info(N11AmfNodes[i].NodeId)
+   //  if AmfNodeIPAddress == N11AmfNodes[i].NodeId {
+   //      found = true
+   //      break
+   //  }
+   // }
+   // klog.Info(found)
+   // if !found {
+   //  klog.Info("Request has not been sent from a peer AMF node")
+   //  err := errors.New("request has not been sent from a peer amf node")
+   //  // klog.Infof("writer: %v,\n request: %v,\n error: %v\n", w, r, err)
+   //  openapiserver.DefaultErrorHandler(w, r, err, &openapiserver.ImplResponse{
+   //      Code: http.StatusBadRequest,
+   //      Body: err.Error(),
+   //  })
+   //  return
+   // }
+
+
+   klog.Info("Creating SMContext")
+   if err := r.ParseMultipartForm(32 << 20); err != nil {
+       //a.individualController.errorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+       openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+       return
+   }
+
+
+   jsonDataParam := r.FormValue("jsonData")
+
+
+   //Next two lines are added by Mounika --> To convert json data into struct
+   smContextCreateDataParam := openapiserver.SmContextCreateData{
+       HTTPRequest: r.WithContext(ctx),
+   }
+
+
+   klog.Info(json.Unmarshal([]byte(jsonDataParam), &smContextCreateDataParam))
+   klog.Infof("Json data is:%v", jsonDataParam)
+   klog.Infof("Input data is : %+v", smContextCreateDataParam)
+
+
+   if err := openapiserver.AssertSmContextCreateDataRequired(smContextCreateDataParam); err != nil {
+       //a.individualController.errorHandler(w, r, err, nil)
+       openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+       return
+   }
+   if err := openapiserver.AssertSmContextCreateDataConstraints(smContextCreateDataParam); err != nil {
+       //a.individualController.errorHandler(w, r, err, nil)
+       openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+       return
+   }
+
+
+   klog.Infof("Data Checks passed")
+   //added by Ruchi
+   //nasMsgParam := r.FormValue("binaryDataN1SmMessage")
+   //var binaryDataN1SmMessageParam []byte
+   //json.Unmarshal([]byte(nasMsgParam), &binaryDataN1SmMessageParam)
+
+
+   _, fileHeader, err := r.FormFile("binaryDataN1SmMessage")
+   if err != nil {
+       openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+       return
+   }
+   formFile, err := fileHeader.Open()
+   if err != nil {
+       openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+       return
+   }
+   defer formFile.Close()
+   binaryDataN1SmMessageParam, err := ioutil.ReadAll(formFile)
+   if err != nil {
+       openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+       return
+   }
+
+
+   // binaryDataN1SmMessageParam, err := ReadFormFileToTempFile(r, "binaryDataN1SmMessage")
+   // if err != nil {
+   //  //a.individualController.errorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+   //  openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+   //  return
+   // }
+   klog.Infof("Binary Data: %v", binaryDataN1SmMessageParam)
+   //send writer in channel
+   a.apiChannel <- &SessionMessage{
+       Ctx:                           ctx,
+       MsgType:                       sm.NSMF_CREATE_SM_CONTEXT_REQUEST,
+       SessionMsg:                    smContextCreateDataParam,
+       SmContextRefID:                "",
+       BinaryDataN2SmInformation:     nil,
+       BinaryDataN1SmMessage:         binaryDataN1SmMessageParam,
+       BinaryDataN2SmInformationExt1: nil,
+       Writer:                        w,
+       Request:                       r.WithContext(ctx),
+   }
+
+
+   //TODO make a reciever function using code written below
+   rec := <-a.apiReceiver
+   // klog.Info(rec)
+
+
+   if rec.RecievedErr != nil {
+       openapiserver.DefaultErrorHandler(
+           w, r, &openapiserver.ParsingError{
+               Err: rec.RecievedErr,
+           }, &rec.RecievedResponse,
+       )
+       return
+   }
+   EncodeJSONResponse(rec.RecievedResponse.Body, &rec.RecievedResponse.Code, w)
+   span.SetStatus(codes.Ok, "Successfully processed PostSmContexts")
+}
+
+
+// ReleaseSmContext - Release SM Context
+func (a *ApiServerInfo) ReleaseSmContext(w http.ResponseWriter, r *http.Request) {
+   klog.Info("Inside ReleaseSmContext function")
+
+
+   params := mux.Vars(r)
+   smContextRefParam := params["smContextRef"]
+
+
+   if err := r.ParseMultipartForm(32 << 20); err != nil {
+       //a.individualController.errorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+       openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+       return
+   }
+
+
+   jsonDataParam := r.FormValue("jsonData")
+
+
+   smContextReleaseDataParam := openapiserver.SmContextReleaseData{}
+
+
+   json.Unmarshal([]byte(jsonDataParam), &smContextReleaseDataParam)
+
+
+   klog.Infof("Json data is:%v", jsonDataParam)
+   klog.Infof("Input data is : %+v", smContextReleaseDataParam)
+
+
+   if err := openapiserver.AssertSmContextReleaseDataRequired(smContextReleaseDataParam); err != nil {
+       //a.individualController.errorHandler(w, r, err, nil)
+       openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+       return
+   }
+   if err := openapiserver.AssertSmContextReleaseDataConstraints(smContextReleaseDataParam); err != nil {
+       //a.individualController.errorHandler(w, r, err, nil)
+       openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+       return
+   }
+
+
+   klog.Infof("Data Checks passed")
+
+
+   // binaryDataN2SmInformationParam, err := ReadFormFileToTempFile(r, "binaryDataN2SmInformation")
+   // if err != nil {
+   //  //a.individualController.errorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+   //  openapiserver.DefaultErrorHandler(w, r, &openapiserver.ParsingError{Err: err}, nil)
+   //  return
+   // }
+
+
+   nasMsgParam := r.FormValue("binaryDataN2SmInformation")
+   var binaryDataN2SmInformationParam []byte
+   json.Unmarshal([]byte(nasMsgParam), &binaryDataN2SmInformationParam)
+   klog.Infof("Binary Data: %v", binaryDataN2SmInformationParam)
+
+
+   a.apiChannel <- &SessionMessage{MsgType: sm.NSMF_RELEASE_SM_CONTEXT_REQUEST,
+       SessionMsg:                    smContextReleaseDataParam,
+       SmContextRefID:                smContextRefParam,
+       BinaryDataN2SmInformation:     binaryDataN2SmInformationParam,
+       BinaryDataN1SmMessage:         nil,
+       BinaryDataN2SmInformationExt1: nil}
+   //TODO  create a function to handle situation below
+   rec := <-a.apiReceiver
+   // klog.Info(rec)
+
+
+   if rec.RecievedErr != nil {
+       openapiserver.DefaultErrorHandler(
+           w, r, &openapiserver.ParsingError{
+               Err: rec.RecievedErr,
+           }, &rec.RecievedResponse,
+       )
+       return
+   }
+   EncodeJSONResponse(rec.RecievedResponse.Body, &rec.RecievedResponse.Code, w)
+
+
+}
+
+below is my pdusmsp.go code:
+
+package pdusmsp
+
+
+import (
+   //"encoding/binary"
+   //"net"
+
+
+   //"sync"
+
+
+   "context"
+   "errors"
+   "fmt"
+   "strconv"
+   "time"
+
+
+   //  "fmt"
+   "k8s.io/klog"
+   //"github.com/gin-gonic/gin"
+   "github.com/benbjohnson/clock"
+
+
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/api"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/apiclient"
+   db "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/database"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc/grpcserver"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc/protos"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/tracing"
+
+
+   //"w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm/nodes"
+
+
+   openapiserver "w5gc.io/wipro5gcore/openapi/openapiserver"
+
+
+   "go.opentelemetry.io/otel/codes"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/config"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm/sessions"
+   "w5gc.io/wipro5gcore/utils/cache"
+
+
+   // "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/sm"
+)
+
+
+const (
+   retransmitInterval = time.Second * 3
+   retransmitRetries  = 3
+   backoffInterval    = time.Second * 3
+   // Period for performing global cleanup tasks.
+   housekeepingPeriod = time.Second * 2
+)
+
+
+// PdusmspHandler is an interface implemented for testability
+type PdusmspHandler interface {
+   //InitiateSessioReportRequest(sessionMsg *pfcpUdp.Message)
+   HandleSessionCleanups() error
+}
+
+
+// Bootstrap is a bootstrapping interface for PDU SMS
+type PdusmspBootstrap interface {
+   //GetConfiguration()
+   //GetContext()
+   Run(configChannel <-chan config.PdusmspConfig)
+}
+
+
+type Pdusmsp struct {
+   config          *config.PdusmspConfig
+   sessionManager  sm.SessionManager
+   sessionCache    cache.WorkCache
+   dbManager       db.DBManager
+   grpc            grpc.Grpc
+   apiClient       apiclient.ApiClient
+   apiServer       api.ApiServer
+   sessionWorkers  SessionWorkers
+   clock           clock.Clock
+   backoffInterval time.Duration
+   timerT1         time.Duration
+   retriesN1       uint8
+   context         *PdusmspContext
+}
+
+
+type PdusmspContext struct {
+   startTime   time.Time
+   lastRestart time.Time
+   restarts    int // If number of restarts in last 10 sec > 3 reset TODO GURU
+   //lock                  sync.Mutex
+   NodeId string
+}
+
+
+// Initialize Pdusmsp
+func NewPdusmsp(cfg *config.PdusmspConfig, time time.Time) (PdusmspBootstrap, bool) {
+
+
+   pdusmsp := &Pdusmsp{
+       config:          cfg,
+       clock:           clock.New(),
+       backoffInterval: backoffInterval,
+       timerT1:         retransmitInterval,
+       retriesN1:       retransmitRetries,
+       context: &PdusmspContext{
+           startTime: time,
+       },
+   }
+
+
+   // Intialize the api handler
+   //should both apiClient and apiServer be created in newcsc?
+   pdusmsp.apiClient = apiclient.NewApiClient(cfg)
+   pdusmsp.apiServer = api.NewApiServer(cfg.NodeInfo)
+
+
+   // Intialize session db
+   pdusmsp.dbManager = db.NewDBManager()
+   //temperory to be romoved
+   dbInfo := pdusmsp.dbManager.(*db.DBInfo)
+
+
+   // Initialize session manager
+   //pdusmsp.sessionManager = sm.NewSessionManager(pdusmsp.config.NodeInfo, pdusmsp.config.n11Nodes, time, pdusmsp.backoffInterval, pdusmsp.timerT1, pdusmsp.retriesN1)
+
+
+   // Intialize grpc
+   pdusmsp.grpc = grpc.NewGrpc(cfg.GrpcServerInfo, cfg.GrpcClientInfo)
+   // s:=(pdusmsp.apiClient).(apiclient.ApiClientInfo)
+   // var s sm.SessionManager
+   pdusmsp.sessionManager = sm.NewSessionManager(dbInfo, &pdusmsp.grpc, pdusmsp.apiClient)
+   //  s:= pdusmsp.sessionManager.NewSMContextAPIService()
+   //  fmt.Println(s)
+   // Intialize session cache
+   pdusmsp.sessionCache = cache.NewCache(pdusmsp.clock)
+
+
+   // Intialize session workers
+   pdusmsp.sessionWorkers = NewSessionWorkers(pdusmsp.handleSession, pdusmsp.sessionCache, pdusmsp.backoffInterval)
+
+
+   // resyncInterval, backOffPeriod TODO GURU
+
+
+   return pdusmsp, true
+}
+
+
+// Run starts the Pdusmsp
+func (p *Pdusmsp) Run(configChannel <-chan config.PdusmspConfig) {
+   // start the session manager
+   go p.sessionManager.Start()
+
+
+   // Start the api handler
+   p.apiClient.Start()
+   go p.apiServer.Start()
+
+
+   // Start the grpc
+   go p.grpc.Start()
+
+
+   // Start the db Hanlder
+   p.dbManager.Start()
+
+
+   // Start the pdusmsp event handler
+   p.pdusmspEvents(configChannel, p)
+
+
+   // return
+}
+
+
+func (p *Pdusmsp) pdusmspEvents(configChannel <-chan config.PdusmspConfig, handler PdusmspHandler) {
+   klog.Infof("Entered into pdusmspEvents")
+   syncTicker := time.NewTicker(time.Second)
+   defer syncTicker.Stop()
+   housekeepingTicker := time.NewTicker(housekeepingPeriod)
+   defer housekeepingTicker.Stop()
+   sessionChannel := p.apiServer.WatchApiChannel()
+   grpcChannel := p.grpc.WatchGrpcChannel()
+   p.handlePdusmspEvents(configChannel, sessionChannel, grpcChannel, syncTicker.C, housekeepingTicker.C, handler)
+}
+
+
+// handlePdusmspEvents is the main loop for processing events in pdusmsp
+func (p *Pdusmsp) handlePdusmspEvents(configChannel <-chan config.PdusmspConfig, sessionChannel <-chan *api.SessionMessage,
+   grpcChannel <-chan *grpcserver.GrpcMessage, syncCh <-chan time.Time, housekeepingCh <-chan time.Time,
+   handler PdusmspHandler) bool {
+   klog.Info("Entered into handlePdusmspEvents")
+   for {
+       select {
+       // Handle config updates of nodes - TODO GURU
+       //case config := <-configChannel:
+       //switch config.Entity {
+       //case CPNODES:
+       // Handle config updates for CP Nodes i.e. SMF nodes
+       //switch config.Type
+       //case ADDNODE
+       //case UPNODES:
+       // Handle config updates for UP Nodes i.e. UPFU nodes
+       //}
+       case grpcMsg := <-grpcChannel:
+           grpcMsgType := sm.MessageType(grpcMsg.MsgType)
+           switch grpcMsgType {
+           case sm.NSMF_N1_N2_TRANSFER:
+               klog.Info("handlePdusmspEvents (N1N2Message Transfer)")
+               klog.Infof("%+v", *grpcMsg.GrpcMsg)
+               // //TODO ask raghu and verify data we are getting
+               data := *grpcMsg.GrpcMsg
+               // //TODO raghu's datatype to be used here
+               trData := data.(*protos.N1N2MessageTransferDataRequest)
+
+
+               // refId := strconv.Itoa(int(trData.PduSessionId)) + trData.OldGuami.AmfId
+               refId := fmt.Sprintf("%v", trData.SmContextID)
+               sessionId := sessions.SessionId(refId)
+               p.dispatchWork(sessions.SessionId(sessionId),
+                   nil,
+                   grpcMsg,
+                   grpcMsgType,
+                   time.Now(),
+                   context.Background(),
+               )
+           }
+       case pdusmsMsg := <-sessionChannel:
+           switch pdusmsMsg.MsgType {
+           case sm.NSMF_CREATE_SM_CONTEXT_REQUEST:
+               // PDU Session management service - Create SM Context Request
+               klog.Infof("handlePdusmspEvents (CREATE SM CONTEXT REQUEST)")
+               //put proper session
+               jsonData := pdusmsMsg.SessionMsg
+               smData := jsonData.(openapiserver.SmContextCreateData)
+               // refContext := strconv.Itoa(int(smData.PduSessionId)) + smData.Guami.AmfId
+               refContext := strconv.Itoa(int(smData.PduSessionId)) + smData.Supi
+               sessionId := sessions.SessionId(refContext)
+               ctx := pdusmsMsg.Request.Context()
+               // p.dispatchWork(sessionId, pdusmsMsg, grpcMsg, time.Now())
+               p.dispatchWork(
+                   sessionId,
+                   pdusmsMsg,
+                   nil,
+                   pdusmsMsg.MsgType,
+                   time.Now(),
+                   ctx,
+               )
+
+
+           case sm.NSMF_UPDATE_SM_CONTEXT_REQUEST:
+               // PDU Session management service - Update SM Context Request
+               klog.Infof("handlePdusmspEvents (UPDATE SM CONTEXT  REQUEST)")
+               // fmt.Println(reflect.TypeOf(pdusmsMsg.SessionMsg))
+               //have to change in future
+               // id, err := strconv.Atoi(pdusmsMsg.SmContextRefID)
+               // if err != nil {
+               //  klog.Error(err.Error())
+               // }
+               // klog.Info(id)
+               sessionId := sessions.SessionId(pdusmsMsg.SmContextRefID)
+               // p.dispatchWork(sessionId, pdusmsMsg, grpcMsg, time.Now())
+               p.dispatchWork(
+                   sessionId,
+                   pdusmsMsg,
+                   nil,
+                   pdusmsMsg.MsgType,
+                   time.Now(),
+                   pdusmsMsg.Request.Context())
+
+
+           case sm.NSMF_RELEASE_SM_CONTEXT_REQUEST:
+               // PDU Session management service - Release SM Context Request
+               klog.Infof("handlePdusmspEvents (RELEASE SM CONTEXT REQUEST)")
+               // id, err := strconv.Atoi(pdusmsMsg.SmContextRefID)
+               // if err != nil {
+               //  klog.Error(err.Error())
+               // }
+               sessionId := sessions.SessionId(pdusmsMsg.SmContextRefID)
+               // p.dispatchWork(sessionId, pdusmsMsg, grpcMsg, time.Now())
+               p.dispatchWork(
+                   sessionId,
+                   pdusmsMsg,
+                   nil,
+                   pdusmsMsg.MsgType,
+                   time.Now(),
+                   pdusmsMsg.Request.Context())
+
+
+           case sm.NSMF_RETRIEVE_SM_CONTEXT_REQUEST:
+               // PDU Session management service - Retrieve SM Context Request
+               klog.Infof("handlePdusmspEvents (RETRIEVE SM CONTEXT REQUEST)")
+               // id, err := strconv.Atoi(pdusmsMsg.SmContextRefID)
+               // if err != nil {
+               //  klog.Error(err.Error())
+               // }
+               sessionId := sessions.SessionId(pdusmsMsg.SmContextRefID)
+               // p.dispatchWork(sessionId, pdusmsMsg, grpcMsg, time.Now())
+               p.dispatchWork(
+                   sessionId,
+                   pdusmsMsg,
+                   nil,
+                   pdusmsMsg.MsgType,
+                   time.Now(),
+                   pdusmsMsg.Request.Context())
+
+
+           }
+
+
+       // Handle pdusmsp node events, sesssion events/ notificatiosn TODO GURU
+       //case event := <-pdusmspEventChannel:
+       // Event for a session.
+       /*if session, ok := p.sessionManager.GetSession(event.SessionID); ok {
+                         klog.V(2).Infof("handlePdusmspEvents (EVENT): %q, event: %#v", format.Sessions(session), event)
+                         //handler.HandleSessionEvents()
+                 } else {
+                         // If the session no longer exists, ignore the event.
+                         klog.V(4).Infof("handleUpfcEvents (EVENT): ignore irrelevant event: %#v", e)
+                 }
+         }
+
+
+         if event.Type == sessionEvent.SessionDisconnected {
+
+
+         }*/
+       //case config := <-ConfigChan:
+       // Check node and send to corresponding channel
+
+
+       // Handle session sync - TODO GURU
+       // To handle asyncs during reboot , configuration error etc
+       case <-syncCh:
+       // Sync sessions waiting for sync
+
+
+       /*sessionsToSync := p.getSessionsToSync()
+         if len(sessionsToSync) == 0 {
+                 break
+         }
+         klog.V(4).Infof("SyncLoop (SYNC): %d sessions", len(sessionsToSync))
+         //handler.HandleSessionSyncs(sessionsToSync)*/
+
+
+       // Handle house keeping of sessions TODO GURU
+       case <-housekeepingCh:
+           klog.V(4).Infof("SyncLoop (housekeeping)")
+           if err := handler.HandleSessionCleanups(); err != nil {
+               klog.Errorf("Failed cleaning session: %v", err)
+           }
+
+
+       }
+   }
+}
+
+
+/*func (p *Pdusmsp) getSessionsToSync() {
+       allSessions := p.n4Manager.pfcp.sessions
+       sessionIds := p.workCache.GetItem()
+
+
+       var sessionsToSync []*sm.Session
+       for _, session := range allSessions {
+               if session.sessionId in sessionIds {
+                       sessionsToSync = append(sessionsToSync, session)
+                       continue
+               }
+       }
+       return sessionsToSync
+}*/
+
+
+func (p *Pdusmsp) HandleSessionCleanups() error {
+   deletedSessions := make(map[sessions.SessionId]struct{})
+   err := p.sessionWorkers.RemoveSessionWorkers(deletedSessions)
+   return err
+}
+
+
+// dispatchWork handles the session in a session worker
+func (p *Pdusmsp) dispatchWork(sessionId sessions.SessionId,
+   sessionMsg *api.SessionMessage,
+   grpcMsg *grpcserver.GrpcMessage,
+   msgType sm.MessageType,
+   startTime time.Time,
+   ctx context.Context) {
+
+
+   // Ensure the context is not nil
+   if ctx == nil {
+       klog.Errorf("Context is nil")
+       return
+   }
+   ctx, span := tracing.Tracer.Start(ctx, "dispatchWork")
+   defer span.End()
+
+
+   if msgType == sm.NSMF_N1_N2_TRANSFER {
+       p.sessionWorkers.HandleSessionMessages(&SessionMessageInfo{
+           SessionId: sessionId,
+           StartTime: startTime,
+           PdusmsMsg: api.SessionMessage{},
+           GrpcMsg:   *grpcMsg,
+           MsgType:   msgType,
+           OnCompleteFunc: func(err error) {
+               // Handle on completion of session update
+               if err == nil {
+                   klog.Infof("Successfully handled pdusms  for session %s", sessionId)
+                   span.SetStatus(codes.Ok, "Successfully handled pdusms")
+                   //metrics.SessionWorkerDuration.WithLabelValues(syncType.String()).Observe(metrics.SinceInSeconds(start))
+               } else {
+                   // Log error and update cause with request rejected
+                   klog.Info(err)
+                   klog.Errorf("Unable to handle pdusms for session %s", sessionId)
+                   span.SetStatus(codes.Error, "Unable to handle pdusms")
+               }
+           },
+       })
+       return
+   }
+   // Run the handle session in an async worker.
+   p.sessionWorkers.HandleSessionMessages(&SessionMessageInfo{
+       SessionId: sessionId,
+       StartTime: startTime,
+       PdusmsMsg: *sessionMsg,
+       GrpcMsg:   grpcserver.GrpcMessage{},
+       MsgType:   msgType,
+       OnCompleteFunc: func(err error) {
+           // Handle on completion of session update
+           if err == nil {
+               klog.Infof("Successfully handled pdusms  for session %s", sessionId)
+               //metrics.SessionWorkerDuration.WithLabelValues(syncType.String()).Observe(metrics.SinceInSeconds(start))
+           } else {
+               // Log error and update cause with request rejected
+               klog.Info(err)
+               klog.Errorf("Unable to handle pdusms for session %s", sessionId)
+           }
+       },
+   })
+   // Monitor the session and number of qos flows for the session. TODO GURU
+   //metrics.QoSFlowsPerSessionCount.Observe(float64(len(session.flows)))
+}
+
+
+// handleSession handles the pdu session message in a session worker
+func (p *Pdusmsp) handleSession(msgInfo SessionMessageInfo) error {
+   // Get the required message info
+   klog.Info("inside")
+
+
+   if msgInfo.PdusmsMsg.Request == nil {
+       klog.Errorf("Request is nil")
+       return errors.New("request is nil")
+   }
+   _, span := tracing.Tracer.Start(msgInfo.PdusmsMsg.Request.Context(), "handleSession")
+   defer func() {
+       if err := recover(); err != nil {
+           span.SetStatus(codes.Error, "handleSession panicked")
+           panic(err)
+       }
+       span.SetStatus(codes.Ok, "Successfully handled session")
+       span.End()
+   }()
+
+
+   msgType := msgInfo.MsgType
+   pdusmsMsg := msgInfo.PdusmsMsg
+   // grpc->myfunction(process/dbupdate)->callruchi'sfunction
+   // Process remote node requests/responses
+   switch msgType {
+   case sm.NSMF_CREATE_SM_CONTEXT_REQUEST:
+       // Process pdusms create request
+       //sm.ProcessNsmfCreateSmContextRequest(pdusmsMsg)
+       n1SmMessage := pdusmsMsg.BinaryDataN1SmMessage
+       jsonData := pdusmsMsg.SessionMsg
+       smData := jsonData.(openapiserver.SmContextCreateData)
+       resp, err := p.sessionManager.ProcessNsmfCreateSmContextRequest(smData, n1SmMessage)
+       chanRec := p.apiServer.WatchRecChannel()
+       chanRec <- &api.Receiver{RecievedResponse: resp, RecievedErr: err}
+       return err
+   case sm.NSMF_UPDATE_SM_CONTEXT_REQUEST:
+       // Process pdusms update request
+       n1SmMessage := pdusmsMsg.BinaryDataN1SmMessage
+       n2SmMessage := pdusmsMsg.BinaryDataN2SmInformation
+       n2SmExt1Message := pdusmsMsg.BinaryDataN2SmInformationExt1
+       smcontextref := pdusmsMsg.SmContextRefID
+       jsonData := pdusmsMsg.SessionMsg
+       smData := jsonData.(openapiserver.SmContextUpdateData)
+       resp, err := p.sessionManager.ProcessNsmfUpdateSmContextRequest(smcontextref, smData, n1SmMessage, n2SmMessage, n2SmExt1Message)
+       //sm.ProcessNsmfUpdateSmContextRequest(pdusmsMsg)
+       chanRec := p.apiServer.WatchRecChannel()
+       chanRec <- &api.Receiver{RecievedResponse: resp, RecievedErr: err}
+       return err
+   case sm.NSMF_RELEASE_SM_CONTEXT_REQUEST:
+       // Process pdusms release request
+       n2SmMessage := pdusmsMsg.BinaryDataN2SmInformation
+       smcontextref := pdusmsMsg.SmContextRefID
+       jsonData := pdusmsMsg.SessionMsg
+       smData := jsonData.(openapiserver.SmContextReleaseData)
+       resp, err := p.sessionManager.ProcessNsmfReleaseSmContextRequest(smcontextref, smData, n2SmMessage)
+       //sm.ProcessNsmfReleaseSmContextRequest(pdusmsMsg)
+       chanRec := p.apiServer.WatchRecChannel()
+       chanRec <- &api.Receiver{RecievedResponse: resp, RecievedErr: err}
+       return err
+   case sm.NSMF_RETRIEVE_SM_CONTEXT_REQUEST:
+       // Process pdusms retrieve request
+       smcontextref := pdusmsMsg.SmContextRefID
+       jsonData := pdusmsMsg.SessionMsg
+       smData := jsonData.(openapiserver.SmContextRetrieveData)
+       resp, err := p.sessionManager.ProcessNsmfRetrieveSmContextRequest(smcontextref, smData)
+       //sm.ProcessNsmfRetrieveSmContextRequest(pdusmsMsg)
+       chanRec := p.apiServer.WatchRecChannel()
+       chanRec <- &api.Receiver{RecievedResponse: resp, RecievedErr: err}
+       return err
+   case sm.NSMF_N1_N2_TRANSFER:
+       recGrpcMsg := (*msgInfo.GrpcMsg.GrpcMsg).(*protos.N1N2MessageTransferDataRequest)
+       //hardcoded for now
+       // ip := "pdusmsp-service.pdusmsp.svc.cluster.local" //change to amf IP based on certain conditions // to ask Guru
+       ip := "csp-service.csp.svc.cluster.local"
+       p.sessionManager.ProcessN1N2Message(recGrpcMsg, ip)
+   }
+   return nil
+}
+
+
+
+
+Below is my sm.go code:
+
+package sm
+
+
+import (
+   "context"
+   "encoding/json"
+   "errors"
+   "fmt"
+   "net/http"
+
+
+   // "os"
+   "regexp"
+   "strconv"
+   "time"
+
+
+   "github.com/go-redis/redis/v8"
+   "github.com/gogo/protobuf/proto"
+   "github.com/prometheus/client_golang/prometheus"
+   "github.com/prometheus/client_golang/prometheus/promauto"
+   "github.com/prometheus/client_golang/prometheus/promhttp"
+   "go.opentelemetry.io/otel/attribute"
+   "go.opentelemetry.io/otel/codes"
+   "google.golang.org/protobuf/types/known/anypb"
+   "k8s.io/klog"
+   "w5gc.io/wipro5gcore/openapi/openapi_commn_client"
+   openapiserver "w5gc.io/wipro5gcore/openapi/openapiserver"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/apiclient"
+   db "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/database"
+   redisClient "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/database/redis"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpc/protos"
+   grpcnas "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpcNAS"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpcNAS/grpcSmfNas/pb"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/grpcNAS/nas"
+   ipgenerator "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/ipGenerator"
+   "w5gc.io/wipro5gcore/pkg/smf/pdusmsp/tracing"
+)
+
+
+var (
+   createProcess = promauto.NewCounter(prometheus.CounterOpts{
+       Name: "sm_create_operations_total",
+       Help: "The total number of SM create operations",
+   })
+
+
+   updateProcess = promauto.NewCounter(prometheus.CounterOpts{
+       Name: "sm_update_operations_total",
+       Help: "The total number of SM update operations",
+   })
+
+
+   retrieveProcess = promauto.NewCounter(prometheus.CounterOpts{
+       Name: "sm_retrieve_operations_total",
+       Help: "The total number of SM retrieve operations",
+   })
+
+
+   releaseProcess = promauto.NewCounter(prometheus.CounterOpts{
+       Name: "sm_release_operations_total",
+       Help: "The total number of SM release operations",
+   })
+   UsersPerSession = promauto.NewGaugeVec(
+       prometheus.GaugeOpts{
+           Name: "users_per_session_id",
+           Help: "Tracks the number of users per session ID",
+       },
+       []string{"session_id", "user_id", "pei"},
+   )
+   createSessionSuccess = promauto.NewCounter(prometheus.CounterOpts{
+       Name: "sm_create_session_success_total",
+       Help: "The total number of successful session creations",
+   })
+
+
+   createSessionAttempts = promauto.NewCounter(prometheus.CounterOpts{
+       Name: "sm_create_session_attempts_total",
+       Help: "The total number of session creation attempts",
+   })
+)
+
+
+type SessionManager interface {
+   Start()
+   ProcessNsmfReleaseSmContextRequest(smContextRef string, smContextReleaseData openapiserver.SmContextReleaseData, binaryN2SMInformation []byte) (openapiserver.ImplResponse, error)
+   ProcessNsmfRetrieveSmContextRequest(smContextRef string, smContextRetrieveData openapiserver.SmContextRetrieveData) (openapiserver.ImplResponse, error)
+   ProcessNsmfUpdateSmContextRequest(smContextRef string, smContextUpdateData openapiserver.SmContextUpdateData, binaryDataN1SmMessage []byte, binaryN2SMInformation []byte, binaryDataN2SmInformationExt1 []byte) (openapiserver.ImplResponse, error)
+   ProcessNsmfCreateSmContextRequest(jsonData openapiserver.SmContextCreateData, binaryDataN1SmMessage []byte) (openapiserver.ImplResponse, error)
+   ProcessN1N2Message(grpcMsg *protos.N1N2MessageTransferDataRequest, ip string) error
+}
+
+
+type SMContextMessage interface{}
+
+
+type MessageType uint8
+
+
+const (
+   NSMF_CREATE_SM_CONTEXT_REQUEST    MessageType = 1
+   NSMF_CREATE_SM_CONTEXT_RESPONSE   MessageType = 2
+   NSMF_UPDATE_SM_CONTEXT_REQUEST    MessageType = 3
+   NSMF_UPDATE_SM_CONTEXT_RESPONSE   MessageType = 4
+   NSMF_RELEASE_SM_CONTEXT_REQUEST   MessageType = 5
+   NSMF_RELEASE_SM_CONTEXT_RESPONSE  MessageType = 6
+   NSMF_RETRIEVE_SM_CONTEXT_REQUEST  MessageType = 7
+   NSMF_RETRIEVE_SM_CONTEXT_RESPONSE MessageType = 8
+   NSMF_N1_N2_TRANSFER               MessageType = 11
+)
+
+
+// try to have a single client
+// make context as a part of sminfo
+// temp struct
+type SmInfo struct {
+   ctx context.Context
+   // sessionDb *redis.Client // Redis client for database 0
+   // userDb    *redis.Client // Redis client for database 1
+   // dbClient *redis.Client
+   DbClient  *db.DBInfo
+   grpc      *grpc.Grpc
+   apiClient apiclient.ApiClient
+}
+
+
+func NewSessionManager(info *db.DBInfo, grpc *grpc.Grpc, apiclient apiclient.ApiClient) *SmInfo {
+   // ctx := context.Background()
+   // sessionClient, err := redisClient.NewRedisClient(ctx, 0)
+   // if err != nil {
+   //  // Handle error
+   //  klog.Error("unable to connect to session Database")
+   //  klog.Info(err)
+   // }
+
+
+   // userClient, err := redisClient.NewRedisClient(ctx, 1)
+   // if err != nil {
+   //  // Handle error
+   //  klog.Error("unable to connect to user Database")
+   //  klog.Info(err)
+   // }
+
+
+   // return &SmInfo{
+   //  // smcontextTable:   make(map[string]SessionContext),
+   //  // userContextTable: make(map[string]UserContext),
+   //  ctx:       ctx,
+   //  sessionDb: sessionClient,
+   //  userDb:    userClient,
+   // }
+   // client, err := redisClient.NewRedisClient(ctx, redisClient.SessionDb)
+   // if err != nil {
+   //  klog.Errorf("unable to connect to session Database,%s", err.Error())
+   //  return &SmInfo{
+   //      ctx:      ctx,
+   //      dbClient: nil,
+   //  }
+   // }
+   return &SmInfo{
+       ctx:       context.Background(),
+       DbClient:  info,
+       grpc:      grpc,
+       apiClient: apiclient,
+   }
+}
+
+
+func (s *SmInfo) Start() {
+   klog.Info("starting tracer")
+   tracing.InitTracer()
+   klog.Info("starting session manager")
+   http.Handle("/metrics", promhttp.Handler())
+   http.ListenAndServe(":2112", nil)
+}
+
+
+//  func (s *SessionManagerInfo) NewSMContextAPIService() *SMContextAPIService {
+//      return s.smContextAPI
+//
+// Helper function to convert SessionContext to JSON
+// }
+func SessionContextToJSON(sessionContext SessionContext) string {
+   data, err := json.Marshal(sessionContext)
+   if err != nil {
+       klog.Errorf("Error converting SessionContext to JSON: %v", err)
+       return ""
+   }
+   return string(data)
+}
+
+
+// Helper function to convert UserContext to JSON
+func UserContextToJSON(userContext UserContext) string {
+   data, err := json.Marshal(userContext)
+   if err != nil {
+       klog.Errorf("Error converting UserContext to JSON: %v", err)
+       return ""
+   }
+   return string(data)
+}
+
+
+// requestType - emergeny | not taken TODO
+func validateData(jsonData openapiserver.SmContextCreateData) error {
+
+
+   //TODO check condition - if amf is not the sender - for later
+   supiValid, _ := regexp.MatchString("^(imsi-[0-9]{5,15}|nai-.+|.+)$", jsonData.Supi)
+   if !supiValid {
+       return errors.New("invalid supi")
+   }
+   // gpsiValid, _ := regexp.MatchString("^(msisdn-[0-9]{5,15}|extid-.+@.+|.+)$", jsonData.Gpsi)
+   // if !gpsiValid {
+   //  return errors.New("invalid gpsi")
+   // }
+   peiValid, _ := regexp.MatchString("^(imei-[0-9]{15}|imeisv-[0-9]{16}|.+)$", jsonData.Pei)
+   if !peiValid {
+       return errors.New("invalid pei")
+   }
+   amfidValid, _ := regexp.MatchString("^[A-Fa-f0-9]{6}$", jsonData.Guami.AmfId)
+   gMccValid, _ := regexp.MatchString("^[0-9]{3}$", jsonData.Guami.PlmnId.Mcc)
+   gMncValid, _ := regexp.MatchString("^[0-9]{2,3}$", jsonData.Guami.PlmnId.Mnc)
+   guamiValid := amfidValid && gMccValid && gMncValid
+   if !guamiValid {
+       return errors.New("invalid guami")
+   }
+   snMccValid, _ := regexp.MatchString("^[0-9]{3}$", jsonData.ServingNetwork.Mcc)
+   snMncValid, _ := regexp.MatchString("^[0-9]{2,3}$", jsonData.ServingNetwork.Mnc)
+   servingNetworkValid := snMccValid && snMncValid
+   if !servingNetworkValid {
+       return errors.New("invalid servingNetwork")
+   }
+   return nil
+}
+
+
+// func (s *SmInfo) changeDatabase(redisDb redisClient.Database) {
+//  s.dbClient = redisClient.ChangeRedisDatabase(s.dbClient, redisDb)
+// }
+
+
+// func upfSessionCreate(data openapiserver.RefToBinaryData) (openapiserver.ImplResponse, error) {
+//  return openapiserver.Response(200, nil), nil
+// }
+
+
+// ProcessNsmfCreateSmContextRequest - Create SM Context
+func (s *SmInfo) ProcessNsmfCreateSmContextRequest(
+   // ctx context.Context,
+   jsonData openapiserver.SmContextCreateData, binaryDataN1SmMessage []byte) (openapiserver.ImplResponse, error) {
+   // TODO - update ProcessNsmfCreateSmContextRequest with the required logic for this service method.
+   // Add api_sm_contexts_collection_service.go to the .openapiserver-generator-ignore to avoid overwriting this service implementation when updating open api gen>
+   klog.Info("create function initiated")
+   createSessionAttempts.Inc()
+
+
+   ctx := jsonData.HTTPRequest.Context()
+
+
+   // Start a child span using this context
+   ctx, span := tracing.Tracer.Start(ctx, "ProcessNsmfCreateSmContextRequest")
+   defer span.End()
+
+
+   // Log session creation attributes
+   span.SetAttributes(
+       // attribute.String("session.id", jsonData.Supi),
+       attribute.String("operation", "create"),
+   )
+
+
+   if jsonData.PduSessionId == 0 {
+       return openapiserver.Response(403, openapiserver.SmContextCreateError{Error: openapiserver.ProblemDetails{Title: "invalid request data",
+           Type: "validityErr", Status: 403, Detail: "invalid PduSessionId "}, N1SmMsg: jsonData.N1SmMsg}), errors.New("invalid PduSessionId")
+   }
+
+
+   // Start a child span for validating data
+   _, validationSpan := tracing.Tracer.Start(ctx, "validateData")
+   defer validationSpan.End()
+
+
+   validityErr := validateData(jsonData)
+   klog.Info(validityErr)
+
+
+   if validityErr != nil {
+       return openapiserver.Response(403, openapiserver.SmContextCreateError{Error: openapiserver.ProblemDetails{Title: "invalid request data",
+           Type: "validityErr", Status: 403, Detail: validityErr.Error()}, N1SmMsg: jsonData.N1SmMsg}), validityErr
+   }
+
+
+   validationSpan.SetStatus(codes.Ok, "Validation successful")
+   // get connection attributes related to the session
+   /*  user, found := s.userContextTable[jsonData.Supi]
+       if found {
+           //assumingmax allowed devices is 15
+           if user.NoSession == 15 {
+               // recheck in specs
+               return openapiserver.Response(401, openapiserver.SmContextCreateError{Error: openapiserver.ProblemDetails{Title: "Connection limit exceeded",
+                   Type: "ConnectionLimitErr", Status: 401, Detail: "device not allowed to have more than 15 connections"},
+                   N1SmMsg: jsonData.N1SmMsg}), errors.New("device not allowed to have more than 15 connections")
+           }
+       }
+   */
+   //contextRefId is PduSessionId concatenated with SUPI
+   klog.Info("Creating ContextRefId")
+   // contextRefId := strconv.Itoa(int(jsonData.PduSessionId)) + jsonData.Guami.AmfId
+   contextRefId := strconv.Itoa(int(jsonData.PduSessionId)) + jsonData.Supi
+   var sessionData SessionContext
+
+
+   _, dbSpan := tracing.Tracer.Start(ctx, "databaseOperations")
+   defer dbSpan.End()
+
+
+   // sData, exists := s.sessionDb.Get(s.ctx, contextRefId).Result()
+   // s.changeDatabase(redisClient.SessionDb)
+   // sData, exists := s.dbClient.Get(s.ctx, contextRefId).Result()
+   // sData, exists := redisClient.Read(contextRefId, redisClient.SessionDb, s.dbClient)
+   sData, exists := s.DbClient.Redis.Read(contextRefId, redisClient.SessionDb)
+   klog.Info("sessionContext: ", sData)
+   json.Unmarshal([]byte(sData), &sessionData)
+
+
+   //TODO Should request be buffered to handle later
+   if exists == nil {
+       if sessionData.State == openapiserver.ACTIVATING {
+           // klog.Info("inside")
+           return openapiserver.Response(403, openapiserver.SmContextCreateError{
+               Error: openapiserver.ProblemDetails{
+                   Title:  "Already in Progress",
+                   Type:   "ALreadyInProgressErr",
+                   Status: 403,
+                   Detail: "request already in progress",
+               },
+               N1SmMsg: jsonData.N1SmMsg,
+           }), errors.New("request already in progress")
+       }
+   }
+
+
+   dbSpan.SetStatus(codes.Ok, "Session created in database")
+
+
+   var user UserContext
+
+
+   //TODO only use one call to both function (put it in redisClient)
+   // dbData, err := s.userDb.Get(s.ctx, jsonData.Supi).Result()
+   // s.changeDatabase(redisClient.UserDb)
+   // userData, err := s.dbClient.Get(s.ctx, jsonData.Supi).Result()
+   userData, err := s.DbClient.Redis.Read(jsonData.Supi, redisClient.UserDb)
+   // klog.Infof("UserContext,err: %+v,%+v", userData, )
+
+
+   if err != nil {
+       if errors.Is(err, redis.Nil) || err.Error() == "failed to get data in Redis: redis: nil" {
+           user = UserContext{NoSession: 0}
+       } else {
+           klog.Info("iwashere")
+           return openapiserver.Response(500, openapiserver.SmContextCreateError{
+               Error: openapiserver.ProblemDetails{
+                   Title:  "Unable to access redis data",
+                   Type:   "RedisDatabaseError",
+                   Status: 500,
+                   Detail: err.Error(),
+               },
+               N1SmMsg: jsonData.N1SmMsg,
+           }), err
+       }
+   } else {
+       json.Unmarshal([]byte(userData), &user)
+   }
+   //assumingmax allowed devices is 15
+   if user.NoSession == 15 {
+       return openapiserver.Response(401, openapiserver.SmContextCreateError{
+           Error: openapiserver.ProblemDetails{
+               Title:  "Connection limit exceeded",
+               Type:   "ConnectionLimitErr",
+               Status: 401,
+               Detail: "device not allowed to have more than 15 connections",
+           },
+           N1SmMsg: jsonData.N1SmMsg,
+       }), errors.New("device not allowed to have more than 15 connections")
+   }
+
+
+   ueContextId := jsonData.Supi
+   //grpc code
+   createData := protos.SmContextCreateDataRequest{
+       SmContextID: contextRefId,
+       N4ReqType:   "N4 Establishment Request",
+       UeContextID: ueContextId,
+       // Supi:         jsonData.Supi,
+       // PduSessionId: jsonData.PduSessionId,
+       // Guami: &protos.Guami{
+       //  PlmnId: &protos.PlmnId{
+       //      Mcc: jsonData.Guami.PlmnId.Mcc,
+       //      Mnc: jsonData.Guami.PlmnId.Mnc,
+       //  },
+       //  AmfId: jsonData.Guami.AmfId,
+       // },
+       // ServingNfId: jsonData.ServingNfId,
+       // UnauthenticatedSupi: jsonData.UnauthenticatedSupi,
+       // Pei:                 jsonData.Pei,
+       // Gpsi:                jsonData.Gpsi,
+       // Dnn:                 jsonData.Dnn,
+       // ServingNetwork: &protos.PlmnId{
+       //  Mcc: jsonData.ServingNetwork.Mcc,
+       //  Mnc: jsonData.ServingNetwork.Mnc,
+       // },
+       // RequestType: string(jsonData.RequestType),
+       // N1SmMessage: &protos.N1SmMessage{
+       //  PduSessionEstablishmentRequest: &protos.PduSessionEstablishmentRequest{
+       //      PduSessionId: jsonData.PduSessionId,
+       //  },
+       // },
+       // AnType:             string(jsonData.AnType),
+       // RatType:            string(jsonData.RatType),
+       // SmContextStatusUri: jsonData.SmContextStatusUri,
+   }
+   (*s.grpc).SendSmContextCreateData(&createData)
+
+
+   //Decode Nas Message
+   // var nasMsg interface{}
+
+
+   klog.Info(binaryDataN1SmMessage)
+
+
+   anyMessage, err := anypb.New(&pb.ByteDataWrapper{ByteArray: binaryDataN1SmMessage})
+   if err != nil {
+       klog.Fatalf("Failed to create Any message: %v", err)
+   }
+
+
+   reqType := "" // Empty string for the request type
+
+
+   ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+   defer cancel()
+
+
+   //client, ctx := grpcnas.CreateGRPCNasClient()
+   client := grpcnas.CreateGRPCNasClient()
+
+
+   // Send the request
+   resp, err := client.HandleEstablishment(ctx, &pb.EstRequest{
+       NasMessage: anyMessage,
+       TypeReq:    reqType,
+   })
+   if err != nil {
+       klog.Fatalf("Error sending SMData: %v", err)
+   }
+
+
+   klog.Infof("Decoded binaryDataN1SmMessage: %v", resp.NasResponse)
+
+
+   nasResp := &pb.PDUSEstReqModel{}
+
+
+   err = resp.NasResponse.UnmarshalTo(nasResp)
+   if err != nil {
+       klog.Fatalf("Error unmarshalling NAS decoded Message: %v", err)
+   }
+
+
+   sessionData = SessionContext{
+       Supi:                               jsonData.Supi,
+       Pei:                                jsonData.Pei,
+       ServingNfId:                        jsonData.ServingNfId,
+       State:                              openapiserver.ACTIVATING,
+       SubState:                           ACTIVATING_CREATE_IN_PROGRESS,
+       UnauthenticatedSupi:                jsonData.UnauthenticatedSupi,
+       Gpsi:                               jsonData.Gpsi,
+       FDnn:                               jsonData.Dnn,
+       Guami:                              jsonData.Guami,
+       ServiceName:                        jsonData.ServiceName,
+       ServingNetwork:                     jsonData.ServingNetwork,
+       AnType:                             jsonData.AnType,
+       RatType:                            jsonData.RatType,
+       SmContextStatusUri:                 jsonData.SmContextStatusUri,
+       PduSessionId:                       jsonData.PduSessionId,
+       ContextRefId:                       contextRefId,
+       UeContextId:                        ueContextId,
+       NASepd:                             nasResp.Epd,
+       NASpduSessionId:                    int(*nasResp.PdusessionID),
+       NASpti:                             int(*nasResp.Pti),
+       NASmsgType:                         nasResp.MsgType,
+       NASmaxIntegrityProtectedDataRateUL: nasResp.DatarateUL,
+       NASmaxIntegrityProtectedDataRateDL: nasResp.DatarateDL,
+   }
+
+
+   // Store data in Redis database 0
+   //        err := s.sessionDb.Set(ctx,, "Keshav", 0).Err()
+   // contextRefId := strconv.Itoa(int(jsonData.PduSessionId)) + jsonData.Guami.AmfId
+   // s.changeDatabase(redisClient.SessionDb)
+   // err = s.dbClient.Set(s.ctx, contextRefId, SessionContextToJSON(sessionData), 0).Err()
+
+
+   // err = s.sessionDb.Set(s.ctx, contextRefId, SessionContextToJSON(sessionData), 0).Err()
+
+
+   _, err = s.DbClient.Redis.Create(
+       contextRefId,
+       SessionContextToJSON(sessionData),
+       redisClient.SessionDb,
+   )
+
+
+   if err != nil {
+       klog.Errorf("Error storing data in Redis database 0: %v", err)
+       return openapiserver.Response(http.StatusInternalServerError, nil), errors.New("internal server error")
+   }
+
+
+   //send to channel to upf (ask raghu)
+
+
+   user = UserContext{user.NoSession + 1}
+   // s.changeDatabase(redisClient.UserDb)
+   // err = s.dbClient.Set(s.ctx, jsonData.Supi, UserContextToJSON(user), 0).Err()
+   // err = s.userDb.Set(s.ctx, jsonData.Supi, UserContextToJSON(user), 0).Err()
+
+
+   _, err = s.DbClient.Redis.Create(
+       jsonData.Supi,
+       UserContextToJSON(user),
+       redisClient.UserDb,
+   )
+
+
+   if err != nil {
+       return openapiserver.Response(500, openapiserver.SmContextCreateError{
+           Error: openapiserver.ProblemDetails{
+               Title:  "Unable to Store Session data",
+               Type:   "RedisDatabaseError",
+               Status: 500,
+               Detail: err.Error(),
+           },
+           N1SmMsg: jsonData.N1SmMsg,
+       }), err
+   }
+
+
+   createProcess.Inc()
+   span.SetStatus(codes.Ok, "Session created successfully")
+
+
+   pduSessionIdStr := fmt.Sprintf("%d", sessionData.PduSessionId)
+   UsersPerSession.WithLabelValues(pduSessionIdStr, sessionData.Supi, sessionData.Pei).Inc()
+
+
+   createSessionSuccess.Inc()
+
+
+   // Increment the UsersPerSession metric
+   // UsersPerSession.WithLabelValues(pduSessionIdStr, sessionData.Supi+"_"+sessionData.Pei).Inc()
+   //On success, "201 Created" shall be returned, the payload body of the POST response shall contain the representation describing the status of the request and the "Location" header shall be present and shall contain the URI of the created resource. The authority and/or deployment-specific string of the apiRoot of the created resource URI may differ from the authority and/or deployment-specific string of the apiRoot of the request URI received in the POST request.
+   return openapiserver.Response(201, openapiserver.SmContextCreatedData{
+       UpCnxState:   sessionData.State,
+       PduSessionId: sessionData.PduSessionId,
+   }), nil
+
+
+}
+
+
+// ReleaseSmContext - Release SM Context
+func (s *SmInfo) ProcessNsmfReleaseSmContextRequest(smContextRef string, smContextReleaseData openapiserver.SmContextReleaseData, binaryDataN2SmInformation []byte) (openapiserver.ImplResponse, error) {
+   klog.Info("Release initiated")
+   // Returns a `400 Bad Request` response if the smContextRef is empty.
+   if smContextRef == "" {
+       return openapiserver.Response(http.StatusBadRequest, nil), errors.New("smContextRef must not be empty")
+   }
+   //TODO activated_release_in_progress case handling
+
+
+   // Check if the SM context exists
+   // Returns a `404 Not Found` response if the SM context does not exist.
+   var smcontext SessionContext
+
+
+   // dbData, err := s.sessionDb.Get(s.ctx, smContextRef).Result()
+   // s.changeDatabase(redisClient.SessionDb)
+   // dbData, err := s.dbClient.Get(s.ctx, smContextRef).Result()
+   sData, err := s.DbClient.Redis.Read(smContextRef, redisClient.SessionDb)
+
+
+   klog.Info(sData, err)
+
+
+   if err != nil {
+       if errors.Is(err, redis.Nil) || err.Error() == "failed to get data in Redis: redis: nil" {
+           klog.Errorf("Incoorect smcontextRef: %v", smContextRef)
+           return openapiserver.Response(
+               http.StatusNotFound,
+               openapiserver.ProblemDetails{},
+           ), errors.New("smContextRef not a valid input")
+       } else {
+           klog.Error(err.Error())
+           return openapiserver.Response(
+               http.StatusInternalServerError,
+               openapiserver.ProblemDetails{},
+           ), errors.New("Internal server error" + err.Error())
+       }
+
+
+   } else {
+       json.Unmarshal([]byte(sData), &smcontext)
+   }
+   if smcontext.SubState == ACTIVATED_RELEASE_IN_PROGRESS {
+       return openapiserver.Response(
+           http.StatusNotFound,
+           nil,
+       ), errors.New("release already in progress")
+   }
+
+
+   //TODO Release the IP addresses/prefixes and User Plane resources
+   //TODO smContextReleaseData.Cause=="PDU_SESSION_STATUS_MISMATCH"
+   //get some info from ngap message
+   releaseData := protos.SmContextReleaseDataRequest{
+       ServingNfId:  smcontext.ServingNfId,
+       Pei:          smcontext.Pei,
+       PduSessionId: smcontext.PduSessionId,
+       Guami: &protos.Guami{
+           PlmnId: &protos.PlmnId{
+               Mcc: smcontext.Guami.PlmnId.Mcc,
+               Mnc: smcontext.Guami.PlmnId.Mnc,
+           },
+           AmfId: smcontext.Guami.AmfId,
+       },
+       SmContextStatusUri: smcontext.SmContextStatusUri,
+       ServingNetwork: &protos.PlmnId{
+           Mcc: smcontext.ServingNetwork.Mcc,
+           Mnc: smcontext.ServingNetwork.Mnc,
+       },
+   }
+   (*s.grpc).SendSmContextReleaseData(&releaseData)
+
+
+   // err = s.ReleaseUPFResources(smcontext.N4SessionID)
+   // if err != nil {
+   //  // Handle error releasing UPF resources
+   //  return openapiserver.Response(http.StatusInternalServerError, nil), errors.New("error releasing UPF resources")
+   // }
+
+
+   var user UserContext
+
+
+   // val, _ := s.userDb.Get(s.ctx, smcontext.Supi).Result()
+   // s.changeDatabase(redisClient.UserDb)
+   // val, _ := s.dbClient.Get(s.ctx, smcontext.Supi).Result()
+
+
+   uData, err := s.DbClient.Redis.Read(smcontext.Supi, redisClient.UserDb)
+   if err != nil {
+       if errors.Is(err, redis.Nil) || err.Error() == "failed to get data in Redis: redis: nil" {
+           klog.Info("New User")
+           user = UserContext{NoSession: 0}
+       } else {
+           klog.Error(err.Error())
+           return openapiserver.Response(
+               http.StatusNotFound,
+               openapiserver.ProblemDetails{},
+           ), err
+       }
+   } else {
+       json.Unmarshal([]byte(uData), &user)
+   }
+   user = UserContext{user.NoSession - 1}
+
+
+   _, err = s.DbClient.Redis.Create(smcontext.Supi, UserContextToJSON(user), redisClient.UserDb)
+
+
+   //err:= s.dbClient.Set(s.ctx, smContextRef, UserContextToJSON(user), 0).Err()
+   // err := s.userDb.Set(s.ctx, smcontext.Supi, UserContextToJSON(user), 0).Err()
+   //  err = s.userDb.Set(s.ctx, smContextRef, UserContextToJSON(UserContext{user.NoSession - 1}), 0).Err()
+
+
+   if err != nil {
+       klog.Error(err.Error())
+       return openapiserver.Response(500, nil), err
+   }
+
+
+   // Release the SM context
+
+
+   // Remove data from Redis database 0
+
+
+   // err = s.sessionDb.Del(s.ctx, smContextRef).Err()
+   // s.changeDatabase(redisClient.SessionDb)
+   // err= s.dbClient.Del(s.ctx, smContextRef).Err()
+   _, err = s.DbClient.Redis.Delete(smContextRef, redisClient.SessionDb)
+
+
+   if err != nil {
+       klog.Errorf("Error removing data from Redis database 0 for smContextRef %s: %v", smContextRef, err)
+       return openapiserver.Response(http.StatusInternalServerError, nil), errors.New("internal server error")
+   }
+   releaseProcess.Inc()
+
+
+   pduSessionIdStr := fmt.Sprintf("%d", smcontext.PduSessionId)
+
+
+   // Decrement the Prometheus metric with session_id and user_id
+   UsersPerSession.WithLabelValues(pduSessionIdStr, smcontext.Supi, smcontext.Pei).Dec()
+
+
+   //why is this commented ask deep
+
+
+   // Update data in Redis database 1
+   /*      val1, err := UserContextToJSON(UserContext{val.NoSession - 1})
+       if err != nil {
+           klog.Errorf("Error converting UserContext to JSON for updating in Redis database 1: %v", err)
+           return openapiserver.Response(http.StatusInternalServerError, nil), errors.New("internal server error")
+       }
+
+
+       err = s.userDb.HSet(s.ctx,"userContextTable", smcontext.Supi, val1).Err()
+       if err != nil {
+           klog.Errorf("Error updating data in Redis database 1 for Supi %s: %v", smcontext.Supi, err)
+           return openapiserver.Response(http.StatusInternalServerError, nil), errors.New("internal server error")
+   }
+   */
+   // Return a success response
+   // On success, the SMF shall return a "200 OK" with message body containing the representation of the ReleasedData when information needs to be returned to the NF Service Consumer, or a "204 No Content" response with an empty payload body in the POST response.
+   return openapiserver.Response(http.StatusNoContent, nil), nil
+}
+
+
+// ReleaseUPFResources is a dummy function to release UPF resources
+func (s *SmInfo) ReleaseUPFResources(n4SessionID string) error {
+   // Simulate releasing UPF resources
+   fmt.Println("Releasing UPF resources for N4 Session ID:", n4SessionID)
+   time.Sleep(2 * time.Second)
+   return nil
+}
+
+
+Please go through each code and help me achieve the desired goal that I have mentioned.

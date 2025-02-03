@@ -1,0 +1,33 @@
+{
+    "Version": "1.0",
+    "NodeInfo": {
+        "NodeId": "127.0.0.1",
+        "ApiPort": ":8080"
+    },
+    "N11AmfNodes": [
+        {
+            "NodeId": "127.0.0.1",
+            "Port": "8083"
+        },
+        {
+            "NodeId": "10.250.108.35",
+            "Port": "8080"
+        },
+        {
+            "NodeId": "10.250.108.35",
+            "Port": "8080"
+        },
+        {
+            "NodeId": "10.250.108.35",
+            "Port": "32462"
+        }
+    ],
+    "GrpcServerInfo":{
+        "ServerIP": "127.0.0.1",
+        "ServerPort": "50051"
+    },
+    "GrpcClientInfo":{
+        "ClientIP": "127.0.0.1",
+        "ClientPort": "50052"
+    }
+}
